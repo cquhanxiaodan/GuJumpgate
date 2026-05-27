@@ -5066,7 +5066,11 @@ async function setIcloudAliasUsedState(payload = {}, options = {}) {
   const used = Boolean(payload.used);
   const state = await getState();
   const manualAliasUsage = getManualAliasUsageMap(state);
-  manualAliasUsage[email] = used;
+  if (used) {
+    manualAliasUsage[email] = true;
+  } else {
+    delete manualAliasUsage[email];
+  }
   await setState({ manualAliasUsage });
   if (!options.silentLog) {
     await addLog(`iCloud：已将 ${email} 标记为${used ? '已用' : '未用'}`, 'ok');
@@ -5084,7 +5088,11 @@ async function setIcloudAliasPreservedState(payload = {}) {
   const preserved = Boolean(payload.preserved);
   const state = await getState();
   const preservedAliases = getPreservedAliasMap(state);
-  preservedAliases[email] = preserved;
+  if (preserved) {
+    preservedAliases[email] = true;
+  } else {
+    delete preservedAliases[email];
+  }
   await setState({ preservedAliases });
   await addLog(`iCloud：已将 ${email} ${preserved ? '设为保留' : '取消保留'}`, 'ok');
   broadcastIcloudAliasesChanged({ reason: 'preserved-updated', email, preserved });

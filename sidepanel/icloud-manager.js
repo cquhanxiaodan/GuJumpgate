@@ -11,7 +11,8 @@
     let renderedAliases = [];
     let selectedEmails = new Set();
     let searchTerm = '';
-    let filterMode = 'all';
+    const DEFAULT_ICLOUD_FILTER_MODE = 'unused';
+    let filterMode = DEFAULT_ICLOUD_FILTER_MODE;
 
     function normalizeIcloudSearchText(value) {
       return String(value || '').trim().toLowerCase();
@@ -134,8 +135,10 @@
       }
 
       const usedCount = aliases.filter((alias) => alias.used).length;
+      const unusedCount = aliases.filter((alias) => !alias.used).length;
+      const preservedCount = aliases.filter((alias) => alias.preserved).length;
       const deletableUsedCount = aliases.filter((alias) => alias.used && !alias.preserved).length;
-      dom.icloudSummary.textContent = `已加载 ${aliases.length} 个别名，其中 ${usedCount} 个已标记为已用。`;
+      dom.icloudSummary.textContent = `已加载 ${aliases.length} 个别名，未用 ${unusedCount} 个，已用 ${usedCount} 个，保留 ${preservedCount} 个。当前筛选：${getIcloudFilterLabel(filterMode)}。`;
       if (dom.btnIcloudDeleteUsed) dom.btnIcloudDeleteUsed.disabled = deletableUsedCount === 0;
 
       const visibleAliases = getFilteredIcloudAliases(aliases);
@@ -221,6 +224,17 @@
         if (!silent) helpers.showToast(`iCloud 别名加载失败：${err.message}`, 'error');
       } finally {
         setIcloudLoadingState(false);
+      }
+    }
+
+    function getIcloudFilterLabel(value = filterMode) {
+      switch (value) {
+        case 'current': return '当前';
+        case 'active': return '可用';
+        case 'used': return '已用';
+        case 'unused': return '未用';
+        case 'preserved': return '保留';
+        default: return '全部';
       }
     }
 
@@ -524,10 +538,10 @@
       selectedEmails.clear();
       renderedAliases = [];
       searchTerm = '';
-      filterMode = 'all';
+      filterMode = DEFAULT_ICLOUD_FILTER_MODE;
       refreshQueued = false;
       if (dom.inputIcloudSearch) dom.inputIcloudSearch.value = '';
-      if (dom.selectIcloudFilter) dom.selectIcloudFilter.value = 'all';
+      if (dom.selectIcloudFilter) dom.selectIcloudFilter.value = DEFAULT_ICLOUD_FILTER_MODE;
       if (dom.icloudList) dom.icloudList.innerHTML = '';
       if (dom.icloudSummary) dom.icloudSummary.textContent = '加载你的 iCloud Hide My Email 别名以便在这里管理。';
       updateIcloudBulkUI([]);
