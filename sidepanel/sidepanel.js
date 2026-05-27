@@ -10358,6 +10358,7 @@ function updatePhoneVerificationSettingsUI() {
   const heroProviderValue = typeof PHONE_SMS_PROVIDER_HERO !== 'undefined' ? PHONE_SMS_PROVIDER_HERO : 'hero-sms';
   const fiveSimProviderValue = typeof PHONE_SMS_PROVIDER_FIVE_SIM !== 'undefined' ? PHONE_SMS_PROVIDER_FIVE_SIM : '5sim';
   const nexSmsProviderValue = typeof PHONE_SMS_PROVIDER_NEXSMS !== 'undefined' ? PHONE_SMS_PROVIDER_NEXSMS : 'nexsms';
+  const nextActionNexSmsProviderValue = typeof PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS !== 'undefined' ? PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS : 'nextaction-nexsms';
   const smsBowerProviderValue = typeof PHONE_SMS_PROVIDER_SMSBOWER !== 'undefined' ? PHONE_SMS_PROVIDER_SMSBOWER : 'smsbower';
   const smsVerificationNumberProviderValue = typeof PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER !== 'undefined' ? PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER : 'sms-verification-number';
   const grizzlySmsProviderValue = typeof PHONE_SMS_PROVIDER_GRIZZLYSMS !== 'undefined' ? PHONE_SMS_PROVIDER_GRIZZLYSMS : 'grizzlysms';
