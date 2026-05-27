@@ -3340,17 +3340,6 @@ function normalizeCustomEmailPoolEntries(value = '') {
     .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
 }
 
-function parseHiddenEmailCredential(value = '') {
-  const raw = String(value || '').trim();
-  const separatorIndex = raw.indexOf('----');
-  const emailSource = separatorIndex >= 0 ? raw.slice(0, separatorIndex) : raw;
-  const credential = separatorIndex >= 0 ? raw : '';
-  return {
-    email: emailSource.trim().toLowerCase(),
-    credential: credential.trim(),
-  };
-}
-
 function normalizeCustomEmailPoolEntryEmail(value = '') {
   return String(value || '').trim().toLowerCase();
 }

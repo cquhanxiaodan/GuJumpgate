@@ -2693,17 +2693,6 @@ function normalizeCustomEmailPool(value = []) {
     .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
 }
 
-function parseHiddenEmailCredential(value = '') {
-  const raw = String(value || '').trim();
-  const separatorIndex = raw.indexOf('----');
-  const emailSource = separatorIndex >= 0 ? raw.slice(0, separatorIndex) : raw;
-  const credential = separatorIndex >= 0 ? raw : '';
-  return {
-    email: emailSource.trim().toLowerCase(),
-    credential: credential.trim(),
-  };
-}
-
 function normalizeCustomEmailPoolEntryObjects(value = []) {
   const source = Array.isArray(value) ? value : [];
   const seenEmails = new Set();
@@ -3380,31 +3369,6 @@ function normalizeHotmailLocalBaseUrl(rawValue = '') {
   } catch {
     return DEFAULT_HOTMAIL_LOCAL_BASE_URL;
   }
-}
-
-function normalizeIcloudApiBaseUrl(rawValue = '') {
-  const value = String(rawValue || '').trim();
-  if (!value) return '';
-
-  try {
-    const parsed = new URL(value);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return '';
-    }
-    if (parsed.pathname.endsWith('/api/verification-code') || parsed.pathname.endsWith('/api/latest-mail')) {
-      parsed.pathname = parsed.pathname.replace(/\/api\/(?:verification-code|latest-mail)$/, '');
-      parsed.search = '';
-      parsed.hash = '';
-    }
-    return parsed.toString().replace(/\/$/, '');
-  } catch {
-    return '';
-  }
-}
-
-function buildIcloudApiEndpoint(baseUrl = '') {
-  const normalizedBaseUrl = normalizeIcloudApiBaseUrl(baseUrl);
-  return normalizedBaseUrl ? `${normalizedBaseUrl}/api/verification-code` : '';
 }
 
 function normalizeAccountRunHistoryHelperBaseUrl(rawValue = '') {
