@@ -5503,7 +5503,12 @@ function syncPhoneSmsProviderOrderFromSelect(options = {}) {
 function applyPhoneSmsProviderOrderSelection(order = [], options = {}) {
   const ensureDefault = options.ensureDefault !== false;
   const syncProvider = Boolean(options.syncProvider);
-  const normalizedOrder = normalizePhoneSmsProviderOrderValue(order, []);
+  const includeActiveProvider = options.includeActiveProvider !== false;
+  const activeProvider = normalizePhoneSmsProviderValue(selectPhoneSmsProvider?.value || latestState?.phoneSmsProvider || DEFAULT_PHONE_SMS_PROVIDER);
+  const rawOrder = includeActiveProvider
+    ? [activeProvider, ...(Array.isArray(order) ? order : [])]
+    : order;
+  const normalizedOrder = normalizePhoneSmsProviderOrderValue(rawOrder, []);
   phoneSmsProviderOrderSelection = [...normalizedOrder];
   if (selectPhoneSmsProviderOrder) {
     const selectedSet = new Set(normalizedOrder);
