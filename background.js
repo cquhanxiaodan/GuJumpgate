@@ -2796,6 +2796,21 @@ function getIcloudApiCredentialForEmail(state = {}, email = '') {
   return String(credentials[normalizedEmail] || '').trim();
 }
 
+function getIcloudManualCredentialForEmail(state = {}, email = '') {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return '';
+  return getIcloudApiCredentialForEmail(state, normalizedEmail)
+    || getCustomEmailPoolCredentialForEmail(state, normalizedEmail);
+}
+
+function shouldUseIcloudApiPollingForEmail(state = {}, email = '') {
+  return Boolean(
+    normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl)
+    && String(state?.icloudApiAdminKey || '')
+    && getIcloudManualCredentialForEmail(state, email)
+  );
+}
+
 async function ensureIcloudApiCredentialForEmail(email = '', state = null) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) return '';
@@ -6784,8 +6799,7 @@ async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
   const baseUrl = normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl);
   const adminKey = String(state?.icloudApiAdminKey || '');
   const targetEmail = String(pollPayload?.targetEmail || state?.email || '').trim().toLowerCase();
-  const credential = getIcloudApiCredentialForEmail(state, targetEmail)
-    || getCustomEmailPoolCredentialForEmail(state, targetEmail)
+  const credential = getIcloudManualCredentialForEmail(state, targetEmail)
     || targetEmail;
   const endpoint = buildIcloudApiEndpoint(baseUrl);
 
@@ -16166,6 +16180,15 @@ function getMailConfig(state) {
     return { provider: HOTMAIL_PROVIDER, label: 'Hotmail（API对接/本地助手）' };
   }
   if (provider === ICLOUD_PROVIDER) {
+    const targetEmail = String(
+      state?.step8VerificationTargetEmail
+      || state?.email
+      || state?.registrationEmailState?.current
+      || ''
+    ).trim().toLowerCase();
+    if (shouldUseIcloudApiPollingForEmail(state, targetEmail)) {
+      return { provider: ICLOUD_API_PROVIDER, label: 'iCloud 邮箱（手动凭据 API 收码）' };
+    }
     const configuredHost = getConfiguredIcloudHostPreference(state)
       || normalizeIcloudHost(state?.preferredIcloudHost)
       || 'icloud.com';
