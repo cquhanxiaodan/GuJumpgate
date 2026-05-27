@@ -30,3 +30,28 @@ test('provider registry exposes free-phone-reuse support matrix', () => {
   assert.equal(registry.supportsFreePhoneReuse('grizzlysms'), false);
   assert.equal(registry.supportsFreePhoneReuse('chatgpt-api'), false);
 });
+
+test('provider registry backfills NextAction into saved legacy provider order', () => {
+  const normalized = registry.normalizeProviderOrder([
+    'hero-sms',
+    '5sim',
+    'nexsms',
+    'smsbower',
+    'sms-verification-number',
+    'grizzlysms',
+    'smspool',
+    'chatgpt-api',
+  ]);
+
+  assert.deepEqual(normalized, [
+    'hero-sms',
+    '5sim',
+    'nexsms',
+    'nextaction-nexsms',
+    'smsbower',
+    'sms-verification-number',
+    'grizzlysms',
+    'smspool',
+    'chatgpt-api',
+  ]);
+});

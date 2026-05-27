@@ -131,6 +131,22 @@
       normalized.push(provider);
     };
 
+    const backfillMissingDefaultProviders = () => {
+      DEFAULT_PROVIDER_ORDER.forEach((provider) => {
+        if (seen.has(provider)) {
+          return;
+        }
+        const previousProvider = DEFAULT_PROVIDER_ORDER[DEFAULT_PROVIDER_ORDER.indexOf(provider) - 1];
+        const insertIndex = previousProvider ? normalized.indexOf(previousProvider) + 1 : 0;
+        seen.add(provider);
+        if (insertIndex > 0) {
+          normalized.splice(insertIndex, 0, provider);
+          return;
+        }
+        normalized.push(provider);
+      });
+    };
+
     source.forEach((entry) => {
       pushProvider(entry && typeof entry === 'object' && !Array.isArray(entry)
         ? (entry.provider || entry.id || entry.value || '')
@@ -138,6 +154,7 @@
     });
 
     if (normalized.length) {
+      backfillMissingDefaultProviders();
       return normalized.slice(0, DEFAULT_PROVIDER_ORDER.length);
     }
 
@@ -148,6 +165,7 @@
         : entry);
     });
 
+    backfillMissingDefaultProviders();
     return normalized.slice(0, DEFAULT_PROVIDER_ORDER.length);
   }
 

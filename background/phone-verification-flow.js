@@ -997,6 +997,22 @@
       const normalized = [];
       const seen = new Set();
 
+      const backfillMissingDefaultProviders = () => {
+        DEFAULT_PHONE_SMS_PROVIDER_ORDER.forEach((provider) => {
+          if (seen.has(provider)) {
+            return;
+          }
+          const previousProvider = DEFAULT_PHONE_SMS_PROVIDER_ORDER[DEFAULT_PHONE_SMS_PROVIDER_ORDER.indexOf(provider) - 1];
+          const insertIndex = previousProvider ? normalized.indexOf(previousProvider) + 1 : 0;
+          seen.add(provider);
+          if (insertIndex > 0) {
+            normalized.splice(insertIndex, 0, provider);
+            return;
+          }
+          normalized.push(provider);
+        });
+      };
+
       source.forEach((entry) => {
         const provider = normalizePhoneSmsProvider(entry);
         if (seen.has(provider)) {
@@ -1007,7 +1023,8 @@
       });
 
       if (normalized.length) {
-        return normalized.slice(0, 3);
+        backfillMissingDefaultProviders();
+        return normalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
       }
 
       const fallback = Array.isArray(fallbackOrder) ? fallbackOrder : [];
@@ -1023,7 +1040,14 @@
         fallbackNormalized.push(provider);
       });
 
-      return fallbackNormalized.slice(0, 3);
+      fallbackNormalized.forEach((provider) => {
+        if (!seen.has(provider)) {
+          seen.add(provider);
+          normalized.push(provider);
+        }
+      });
+      backfillMissingDefaultProviders();
+      return normalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
     }
     function resolvePhoneProviderOrder(state = {}, preferredProvider = '') {
       const currentProvider = normalizePhoneSmsProvider(

@@ -2020,6 +2020,22 @@ function normalizePhoneSmsProviderOrder(value = [], fallbackOrder = []) {
   const normalized = [];
   const seen = new Set();
 
+  const backfillMissingDefaultProviders = () => {
+    DEFAULT_PHONE_SMS_PROVIDER_ORDER.forEach((provider) => {
+      if (seen.has(provider)) {
+        return;
+      }
+      const previousProvider = DEFAULT_PHONE_SMS_PROVIDER_ORDER[DEFAULT_PHONE_SMS_PROVIDER_ORDER.indexOf(provider) - 1];
+      const insertIndex = previousProvider ? normalized.indexOf(previousProvider) + 1 : 0;
+      seen.add(provider);
+      if (insertIndex > 0) {
+        normalized.splice(insertIndex, 0, provider);
+        return;
+      }
+      normalized.push(provider);
+    });
+  };
+
   source.forEach((entry) => {
     const provider = normalizePhoneSmsProvider(
       entry && typeof entry === 'object' && !Array.isArray(entry)
@@ -2034,6 +2050,7 @@ function normalizePhoneSmsProviderOrder(value = [], fallbackOrder = []) {
   });
 
   if (normalized.length) {
+    backfillMissingDefaultProviders();
     return normalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
   }
 
@@ -2051,6 +2068,7 @@ function normalizePhoneSmsProviderOrder(value = [], fallbackOrder = []) {
     normalized.push(provider);
   });
 
+  backfillMissingDefaultProviders();
   return normalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
 }
 function normalizeSignupMethod(value = '') {

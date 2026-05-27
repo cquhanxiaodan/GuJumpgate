@@ -5343,6 +5343,22 @@ function normalizePhoneSmsProviderOrderValue(value = [], fallbackOrder = []) {
   const normalized = [];
   const seen = new Set();
 
+  const backfillMissingDefaultProviders = () => {
+    DEFAULT_PHONE_SMS_PROVIDER_ORDER.forEach((provider) => {
+      if (seen.has(provider)) {
+        return;
+      }
+      const previousProvider = DEFAULT_PHONE_SMS_PROVIDER_ORDER[DEFAULT_PHONE_SMS_PROVIDER_ORDER.indexOf(provider) - 1];
+      const insertIndex = previousProvider ? normalized.indexOf(previousProvider) + 1 : 0;
+      seen.add(provider);
+      if (insertIndex > 0) {
+        normalized.splice(insertIndex, 0, provider);
+        return;
+      }
+      normalized.push(provider);
+    });
+  };
+
   source.forEach((entry) => {
     const provider = normalizePhoneSmsProviderValue(entry);
     if (seen.has(provider)) {
@@ -5353,6 +5369,7 @@ function normalizePhoneSmsProviderOrderValue(value = [], fallbackOrder = []) {
   });
 
   if (normalized.length) {
+    backfillMissingDefaultProviders();
     return normalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
   }
 
@@ -5368,7 +5385,14 @@ function normalizePhoneSmsProviderOrderValue(value = [], fallbackOrder = []) {
     }
     fallbackNormalized.push(provider);
   });
-  return fallbackNormalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
+  fallbackNormalized.forEach((provider) => {
+    if (!seen.has(provider)) {
+      seen.add(provider);
+      normalized.push(provider);
+    }
+  });
+  backfillMissingDefaultProviders();
+  return normalized.slice(0, DEFAULT_PHONE_SMS_PROVIDER_ORDER.length);
 }
 function formatPhoneSmsProviderOrderSummary(order = []) {
   const normalized = normalizePhoneSmsProviderOrderValue(order, []);
@@ -5381,6 +5405,7 @@ function formatPhoneSmsProviderOrderSummary(order = []) {
 }
 
 function updatePhoneSmsProviderOrderSummary(order = []) {
+  ensurePhoneSmsProviderOrderOptions();
   const normalized = normalizePhoneSmsProviderOrderValue(order, []);
   if (displayPhoneSmsProviderOrder) {
     displayPhoneSmsProviderOrder.textContent = formatPhoneSmsProviderOrderSummary(normalized);
@@ -5390,6 +5415,29 @@ function updatePhoneSmsProviderOrderSummary(order = []) {
       ? `${normalized.map((provider) => getPhoneSmsProviderLabel(provider)).join(' / ')} (${normalized.length}/${DEFAULT_PHONE_SMS_PROVIDER_ORDER.length})`
       : `未选择 (0/${DEFAULT_PHONE_SMS_PROVIDER_ORDER.length})`;
   }
+}
+
+function ensurePhoneSmsProviderOrderOptions() {
+  if (!selectPhoneSmsProviderOrder) {
+    return;
+  }
+  const existingValues = new Set(
+    Array.from(selectPhoneSmsProviderOrder.options || [])
+      .map((option) => normalizePhoneSmsProviderValue(option.value || ''))
+      .filter(Boolean)
+  );
+  DEFAULT_PHONE_SMS_PROVIDER_ORDER.forEach((provider) => {
+    const normalizedProvider = normalizePhoneSmsProviderValue(provider);
+    if (!normalizedProvider || existingValues.has(normalizedProvider)) {
+      return;
+    }
+    const option = document.createElement('option');
+    option.value = normalizedProvider;
+    option.textContent = getPhoneSmsProviderLabel(normalizedProvider);
+    option.selected = false;
+    selectPhoneSmsProviderOrder.appendChild(option);
+    existingValues.add(normalizedProvider);
+  });
 }
 
 function resolveNormalizedProviderOrderForRuntime(state = {}) {
@@ -5420,6 +5468,7 @@ function renderPhoneSmsProviderOrderMenu() {
   if (!phoneSmsProviderOrderMenu || !selectPhoneSmsProviderOrder) {
     return;
   }
+  ensurePhoneSmsProviderOrderOptions();
   phoneSmsProviderOrderMenu.innerHTML = '';
   const selectedOrder = normalizePhoneSmsProviderOrderValue(phoneSmsProviderOrderSelection, []);
   const selectedSet = new Set(selectedOrder);
@@ -5470,6 +5519,7 @@ function syncPhoneSmsProviderOrderFromSelect(options = {}) {
     updatePhoneSmsProviderOrderSummary([]);
     return [];
   }
+  ensurePhoneSmsProviderOrderOptions();
 
   const selectedProviders = Array.from(selectPhoneSmsProviderOrder.options)
     .filter((option) => option.selected)
@@ -5523,6 +5573,7 @@ function applyPhoneSmsProviderOrderSelection(order = [], options = {}) {
   const normalizedOrder = normalizePhoneSmsProviderOrderValue(rawOrder, []);
   phoneSmsProviderOrderSelection = [...normalizedOrder];
   if (selectPhoneSmsProviderOrder) {
+    ensurePhoneSmsProviderOrderOptions();
     const selectedSet = new Set(normalizedOrder);
     Array.from(selectPhoneSmsProviderOrder.options).forEach((option) => {
       const provider = normalizePhoneSmsProviderValue(option.value || '');
