@@ -2914,6 +2914,57 @@ async function markCurrentCustomEmailPoolEntryUsed(state = {}, options = {}) {
   };
 }
 
+async function setCustomEmailPoolEntryUsedStateForEmail(email = '', used = false, options = {}) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    return { updated: false };
+  }
+
+  const state = await getState();
+  const entries = getCustomEmailPoolEntries(state);
+  if (!entries.length || !entries.some((entry) => entry.email === normalizedEmail)) {
+    return { updated: false };
+  }
+
+  let changed = false;
+  const now = Date.now();
+  const nextEntries = entries.map((entry) => {
+    if (entry.email !== normalizedEmail || Boolean(entry.used) === Boolean(used)) {
+      return entry;
+    }
+    changed = true;
+    return {
+      ...entry,
+      used: Boolean(used),
+      lastUsedAt: used ? now : entry.lastUsedAt,
+    };
+  });
+
+  if (!changed) {
+    return { updated: false };
+  }
+
+  const nextCustomEmailPool = nextEntries
+    .filter((entry) => entry.enabled && !entry.used)
+    .map((entry) => entry.email);
+  await setPersistentSettings({
+    customEmailPoolEntries: nextEntries,
+    customEmailPool: nextCustomEmailPool,
+  });
+  await setState({
+    customEmailPoolEntries: nextEntries,
+    customEmailPool: nextCustomEmailPool,
+  });
+  broadcastDataUpdate({
+    customEmailPoolEntries: nextEntries,
+    customEmailPool: nextCustomEmailPool,
+  });
+  if (!options.silentLog) {
+    await addLog(`自定义邮箱池：已将 ${normalizedEmail} 标记为${used ? '已用' : '未用'}。`, options.level || 'ok');
+  }
+  return { updated: true, customEmailPoolEntries: nextEntries, customEmailPool: nextCustomEmailPool };
+}
+
 async function markCurrentRegistrationAccountUsed(state = {}, options = {}) {
   const providedState = state && typeof state === 'object' ? state : {};
   const currentState = await getState();
@@ -5195,6 +5246,12 @@ async function setIcloudAliasUsedState(payload = {}, options = {}) {
   }
   if (!options.silentLog) {
     await addLog(`iCloud：已将 ${email} 标记为${used ? '已用' : '未用'}`, 'ok');
+  }
+  if (!options.skipCustomPoolSync) {
+    await setCustomEmailPoolEntryUsedStateForEmail(email, used, {
+      silentLog: true,
+      level: options.level || 'ok',
+    });
   }
   broadcastIcloudAliasesChanged({ reason: 'used-updated', email, used });
   return { email, used };
@@ -15938,6 +15995,7 @@ const messageRouter = self.MultiPageBackgroundMessageRouter?.createMessageRouter
   listLuckmailPurchasesForManagement,
   markCurrentCustomEmailPoolEntryUsed,
   markCurrentRegistrationAccountUsed,
+  setCustomEmailPoolEntryUsedStateForEmail,
   getCurrentMail2925Account,
   normalizeHotmailAccounts,
   normalizeMail2925Accounts,

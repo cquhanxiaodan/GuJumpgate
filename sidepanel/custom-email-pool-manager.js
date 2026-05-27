@@ -255,15 +255,19 @@
         });
 
         item.querySelector('[data-action="toggle-used"]').addEventListener('click', async () => {
-          await patchEntries((entriesList) => entriesList.map((candidate) => (
+          const nextUsed = !entry.used;
+          const updated = await patchEntries((entriesList) => entriesList.map((candidate) => (
             String(candidate.id) === entryId
               ? {
                   ...candidate,
-                  used: !entry.used,
-                  lastUsedAt: !entry.used ? Date.now() : candidate.lastUsedAt,
+                  used: nextUsed,
+                  lastUsedAt: nextUsed ? Date.now() : candidate.lastUsedAt,
                 }
               : candidate
           )));
+          if (updated) {
+            await actions.syncIcloudUsedState?.(entry.email, nextUsed);
+          }
         });
 
         item.querySelector('[data-action="toggle-enabled"]').addEventListener('click', async () => {
@@ -296,10 +300,12 @@
 
       try {
         await actions.persistEntries?.();
+        return true;
       } catch (error) {
         state.setEntries?.(previousEntries);
         renderCustomEmailPoolEntries(previousEntries);
         helpers.showToast(`更新自定义邮箱池失败：${error.message}`, 'error');
+        return false;
       } finally {
         setLoadingState(false);
       }
@@ -482,20 +488,32 @@
 
       dom.btnCustomEmailPoolBulkUsed?.addEventListener('click', async () => {
         const targetIds = new Set([...selectedEntryIds]);
-        await patchEntries((entriesList) => entriesList.map((entry) => (
+        const targetEmails = renderedEntries
+          .filter((entry) => targetIds.has(String(entry.id)))
+          .map((entry) => entry.email);
+        const updated = await patchEntries((entriesList) => entriesList.map((entry) => (
           targetIds.has(String(entry.id))
             ? { ...entry, used: true, lastUsedAt: entry.lastUsedAt || Date.now() }
             : entry
         )));
+        if (updated) {
+          await Promise.all(targetEmails.map((email) => actions.syncIcloudUsedState?.(email, true)));
+        }
       });
 
       dom.btnCustomEmailPoolBulkUnused?.addEventListener('click', async () => {
         const targetIds = new Set([...selectedEntryIds]);
-        await patchEntries((entriesList) => entriesList.map((entry) => (
+        const targetEmails = renderedEntries
+          .filter((entry) => targetIds.has(String(entry.id)))
+          .map((entry) => entry.email);
+        const updated = await patchEntries((entriesList) => entriesList.map((entry) => (
           targetIds.has(String(entry.id))
             ? { ...entry, used: false }
             : entry
         )));
+        if (updated) {
+          await Promise.all(targetEmails.map((email) => actions.syncIcloudUsedState?.(email, false)));
+        }
       });
 
       dom.btnCustomEmailPoolBulkEnable?.addEventListener('click', async () => {

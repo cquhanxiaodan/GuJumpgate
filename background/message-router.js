@@ -141,6 +141,7 @@
       listLuckmailPurchasesForManagement,
       markCurrentCustomEmailPoolEntryUsed,
       markCurrentRegistrationAccountUsed,
+      setCustomEmailPoolEntryUsedStateForEmail,
       normalizeHotmailAccounts,
       normalizeMail2925Accounts,
       normalizePayPalAccounts,
@@ -2496,6 +2497,20 @@
           clearStopRequest();
           const result = await setIcloudAliasUsedState(message.payload || {});
           return { ok: true, ...result };
+        }
+
+        case 'SYNC_CUSTOM_EMAIL_POOL_USED_STATE': {
+          clearStopRequest();
+          const email = String(message.payload?.email || '').trim().toLowerCase();
+          const used = Boolean(message.payload?.used);
+          if (!email) throw new Error('缺少需要同步的邮箱地址。');
+          if (typeof setIcloudAliasUsedState === 'function') {
+            await setIcloudAliasUsedState({ email, used }, {
+              silentLog: true,
+              skipCustomPoolSync: true,
+            });
+          }
+          return { ok: true, email, used };
         }
 
         case 'SET_ICLOUD_ALIAS_PRESERVED_STATE': {

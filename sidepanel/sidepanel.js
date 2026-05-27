@@ -15353,6 +15353,20 @@ const customEmailPoolManager = window.SidepanelCustomEmailPoolManager?.createCus
       markSettingsDirty(true);
       await saveSettings({ silent: true });
     },
+    syncIcloudUsedState: async (email, used) => {
+      const normalizedEmail = String(email || '').trim().toLowerCase();
+      if (!normalizedEmail) return;
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'SYNC_CUSTOM_EMAIL_POOL_USED_STATE',
+          source: 'sidepanel',
+          payload: { email: normalizedEmail, used: Boolean(used) },
+        });
+        if (response?.error) throw new Error(response.error);
+      } catch (error) {
+        showToast(`iCloud 状态同步失败：${error.message}`, 'warn', 2600);
+      }
+    },
     setRuntimeEmail: async (email) => {
       await setRuntimeEmailState(email);
       syncLatestState({ email });
