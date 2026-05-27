@@ -9241,9 +9241,10 @@ async function loadNextActionNexSmsServices() {
 async function loadNextActionNexSmsCountries() {
   const previousOrder = [...nextActionNexSmsCountrySelectionOrder];
   const serviceCode = normalizeNextActionNexSmsServiceCodeInput(inputNextActionNexSmsServiceCode?.value || latestState?.nextActionNexSmsServiceCode);
+  const headers = buildNextActionNexSmsHeaders();
   const url = new URL('/api/v1/countries', 'https://sms.nextactionplus.com');
   url.searchParams.set('service', serviceCode);
-  const response = await fetch(url.toString(), { cache: 'no-store', headers: buildNextActionNexSmsHeaders() });
+  const response = await fetch(url.toString(), { cache: 'no-store', headers });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(describeNexSmsPreviewPayload(payload) || `HTTP ${response.status}`);
   const countryEntries = (Array.isArray(payload?.countries) ? payload.countries : [])
@@ -9262,10 +9263,42 @@ async function loadNextActionNexSmsCountries() {
     })
     .filter(Boolean);
   if (!countryEntries.length) throw new Error('暂无有库存国家');
+
+  const countryEntriesWithPrice = await Promise.all(countryEntries.map(async (entry) => {
+    try {
+      const priceUrl = new URL('/api/v1/prices', 'https://sms.nextactionplus.com');
+      priceUrl.searchParams.set('service', serviceCode);
+      priceUrl.searchParams.set('country', entry.code);
+      const priceResponse = await fetch(priceUrl.toString(), { cache: 'no-store', headers });
+      const pricePayload = await priceResponse.json().catch(() => ({}));
+      if (!priceResponse.ok) throw new Error(describeNexSmsPreviewPayload(pricePayload) || `HTTP ${priceResponse.status}`);
+      const prices = Array.isArray(pricePayload?.prices) ? pricePayload.prices : [];
+      const priceCentsValues = prices
+        .map((price) => Number(price.price_cents ?? price.price ?? price.amount_cents ?? price.cost_cents))
+        .filter((priceCents) => Number.isFinite(priceCents) && priceCents > 0);
+      const minPriceCents = priceCentsValues.length ? Math.min(...priceCentsValues) : null;
+      return {
+        ...entry,
+        minPriceCents,
+        label: minPriceCents === null ? entry.label : `${entry.label} / 最低 ¥${(minPriceCents / 100).toFixed(2)}`,
+        searchText: `${entry.searchText} ${minPriceCents === null ? '' : `最低 ¥${(minPriceCents / 100).toFixed(2)}`}`,
+      };
+    } catch (error) {
+      return { ...entry, minPriceCents: null, priceError: error?.message || String(error) };
+    }
+  }));
+
+  countryEntriesWithPrice.sort((left, right) => {
+    const leftPrice = left.minPriceCents ?? Number.POSITIVE_INFINITY;
+    const rightPrice = right.minPriceCents ?? Number.POSITIVE_INFINITY;
+    if (leftPrice !== rightPrice) return leftPrice - rightPrice;
+    return String(left.code).localeCompare(String(right.code));
+  });
+
   if (selectNextActionNexSmsCountry) {
     selectNextActionNexSmsCountry.innerHTML = '';
     nextActionNexSmsCountrySearchTextByCode.clear();
-    countryEntries.forEach((entry) => {
+    countryEntriesWithPrice.forEach((entry) => {
       const option = document.createElement('option');
       option.value = entry.code;
       option.textContent = entry.label;
@@ -9274,10 +9307,10 @@ async function loadNextActionNexSmsCountries() {
     });
   }
   const fallbackOrder = previousOrder.length ? previousOrder : (Array.isArray(latestState?.nextActionNexSmsCountryOrder) ? latestState.nextActionNexSmsCountryOrder : []);
-  const nextOrder = applyNextActionNexSmsCountrySelection(fallbackOrder.length ? fallbackOrder : countryEntries.map((entry) => entry.code).slice(0, 10), {
+  const nextOrder = applyNextActionNexSmsCountrySelection(fallbackOrder.length ? fallbackOrder : countryEntriesWithPrice.map((entry) => entry.code).slice(0, 10), {
     ensureDefault: false,
   });
-  showToast?.(`已加载有库存国家：${nextOrder.join(',')}`, 'ok', 2200);
+  showToast?.(`已按最低价加载有库存国家：${nextOrder.join(',')}`, 'ok', 2200);
   await saveSettings({ silent: true });
 }
 
