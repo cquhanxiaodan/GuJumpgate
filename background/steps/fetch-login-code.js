@@ -23,7 +23,6 @@
       getState,
       getTabId,
       HOTMAIL_PROVIDER,
-      ICLOUD_API_PROVIDER = 'icloud-api',
       isTabAlive,
       isVerificationMailPollingError,
       LUCKMAIL_PROVIDER,
