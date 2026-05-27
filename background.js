@@ -4983,6 +4983,104 @@ function getEffectiveUsedEmails(state) {
   return toNormalizedEmailSet(getManualAliasUsageMap(state));
 }
 
+function buildIcloudApiAdminEndpoint(state = {}, path = '') {
+  const baseUrl = normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl);
+  const endpoint = buildIcloudApiEndpoint(baseUrl);
+  return endpoint && path
+    ? endpoint.replace(/\/api\/verification-code$/, path)
+    : '';
+}
+
+function normalizeIcloudCloudAliasStates(value = []) {
+  const states = Array.isArray(value) ? value : [];
+  return states.map((item) => {
+    const email = String(item?.email || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      return null;
+    }
+    return {
+      email,
+      used: Boolean(item.used),
+      preserved: Boolean(item.preserved),
+      updatedAt: Math.max(0, Number(item.updatedAt) || 0),
+    };
+  }).filter(Boolean);
+}
+
+async function fetchIcloudCloudAliasStates(state = {}) {
+  const adminKey = String(state?.icloudApiAdminKey || '');
+  const endpoint = buildIcloudApiAdminEndpoint(state, '/api/admin/alias-states');
+  if (!endpoint || !adminKey) {
+    return null;
+  }
+
+  const response = await fetch(`${endpoint}?adminKey=${encodeURIComponent(adminKey)}`);
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
+  }
+  return normalizeIcloudCloudAliasStates(payload?.states || []);
+}
+
+async function mergeIcloudCloudAliasStates(state = {}) {
+  const cloudStates = await fetchIcloudCloudAliasStates(state);
+  if (!cloudStates) {
+    return state;
+  }
+  const manualAliasUsage = {
+    ...getManualAliasUsageMap(state),
+  };
+  const preservedAliases = {
+    ...getPreservedAliasMap(state),
+  };
+  cloudStates.forEach((item) => {
+    if (item.used) {
+      manualAliasUsage[item.email] = true;
+    } else {
+      delete manualAliasUsage[item.email];
+    }
+    if (item.preserved) {
+      preservedAliases[item.email] = true;
+    } else {
+      delete preservedAliases[item.email];
+    }
+  });
+  await setState({ manualAliasUsage, preservedAliases });
+  return {
+    ...state,
+    manualAliasUsage,
+    preservedAliases,
+  };
+}
+
+async function syncIcloudAliasStateToWorker(email = '', updates = {}, state = null) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    return { synced: false };
+  }
+  const resolvedState = state || await getState();
+  const adminKey = String(resolvedState?.icloudApiAdminKey || '');
+  const endpoint = buildIcloudApiAdminEndpoint(resolvedState, '/api/admin/alias-state');
+  if (!endpoint || !adminKey) {
+    return { synced: false };
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      adminKey,
+      email: normalizedEmail,
+      ...updates,
+    }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
+  }
+  return { synced: true, state: payload?.state || null };
+}
+
 function normalizeIcloudAliasCacheList(value = [], options = {}) {
   const aliases = Array.isArray(value) ? value : [];
   const usedEmails = toNormalizedEmailSet(options.usedEmails);
@@ -5072,6 +5170,13 @@ async function setIcloudAliasUsedState(payload = {}, options = {}) {
     delete manualAliasUsage[email];
   }
   await setState({ manualAliasUsage });
+  if (!options.skipCloudSync) {
+    try {
+      await syncIcloudAliasStateToWorker(email, { used }, state);
+    } catch (error) {
+      await addLog(`iCloud：${email} 已在本机标记为${used ? '已用' : '未用'}，同步云端状态失败：${error.message}`, 'warn');
+    }
+  }
   if (!options.silentLog) {
     await addLog(`iCloud：已将 ${email} 标记为${used ? '已用' : '未用'}`, 'ok');
   }
@@ -5094,6 +5199,11 @@ async function setIcloudAliasPreservedState(payload = {}) {
     delete preservedAliases[email];
   }
   await setState({ preservedAliases });
+  try {
+    await syncIcloudAliasStateToWorker(email, { preserved }, state);
+  } catch (error) {
+    await addLog(`iCloud：${email} 已在本机${preserved ? '设为保留' : '取消保留'}，同步云端状态失败：${error.message}`, 'warn');
+  }
   await addLog(`iCloud：已将 ${email} ${preserved ? '设为保留' : '取消保留'}`, 'ok');
   broadcastIcloudAliasesChanged({ reason: 'preserved-updated', email, preserved });
   return { email, preserved };
@@ -9086,7 +9196,12 @@ async function listIcloudAliases(options = {}) {
     return await withIcloudLoginHelp('加载 iCloud 隐私邮箱列表', async () => {
       const { serviceUrl } = await resolveIcloudPremiumMailService(options);
       const response = await icloudRequest('GET', `${serviceUrl}/v2/hme/list`);
-      const state = await getState();
+      let state = await getState();
+      try {
+        state = await mergeIcloudCloudAliasStates(state);
+      } catch (error) {
+        await addLog(`iCloud：云端已用状态同步失败，将使用本机状态继续：${error.message}`, 'warn');
+      }
       const aliases = normalizeIcloudAliasList(response, {
         usedEmails: getEffectiveUsedEmails(state),
         preservedEmails: getPreservedAliasMap(state),
