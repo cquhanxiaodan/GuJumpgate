@@ -27,6 +27,8 @@
       DEFAULT_NEX_SMS_BASE_URL = 'https://api.nexsms.net',
       DEFAULT_NEX_SMS_COUNTRY_ORDER = [1],
       DEFAULT_NEX_SMS_SERVICE_CODE = 'ot',
+      DEFAULT_NEXTACTION_NEX_SMS_COUNTRY_ORDER = ['US'],
+      DEFAULT_NEXTACTION_NEX_SMS_SERVICE_CODE = '671',
       DEFAULT_SMSBOWER_BASE_URL = 'https://smsbower.page/stubs/handler_api.php',
       DEFAULT_SMSBOWER_SERVICE_CODE = 'dr',
       DEFAULT_SMSBOWER_PRICES_ACTION = 'getPricesV3',
@@ -40,6 +42,7 @@
       createHeroSmsProvider = null,
       createFiveSimProvider = null,
       createNexSmsProvider = null,
+      createNextActionNexSmsProvider = null,
       createSmsBowerProvider = null,
       createSmsVerificationNumberProvider = null,
       createGrizzlySmsProvider = null,
@@ -98,6 +101,7 @@
     const PHONE_SMS_PROVIDER_HERO_SMS = PHONE_SMS_PROVIDER_HERO;
     const PHONE_SMS_PROVIDER_FIVE_SIM = PHONE_SMS_PROVIDER_5SIM;
     const PHONE_SMS_PROVIDER_NEXSMS = 'nexsms';
+    const PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS = 'nextaction-nexsms';
     const PHONE_SMS_PROVIDER_SMSBOWER = 'smsbower';
     const PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER = 'sms-verification-number';
     const PHONE_SMS_PROVIDER_GRIZZLYSMS = 'grizzlysms';
@@ -108,6 +112,7 @@
       PHONE_SMS_PROVIDER_HERO,
       PHONE_SMS_PROVIDER_5SIM,
       PHONE_SMS_PROVIDER_NEXSMS,
+      PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS,
       PHONE_SMS_PROVIDER_SMSBOWER,
       PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER,
       PHONE_SMS_PROVIDER_GRIZZLYSMS,
@@ -243,6 +248,9 @@
       }
       if (normalized === PHONE_SMS_PROVIDER_NEXSMS) {
         return PHONE_SMS_PROVIDER_NEXSMS;
+      }
+      if (normalized === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+        return PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS;
       }
       if (normalized === PHONE_SMS_PROVIDER_SMSBOWER) {
         return PHONE_SMS_PROVIDER_SMSBOWER;
@@ -876,6 +884,9 @@
       if (provider === PHONE_SMS_PROVIDER_NEXSMS) {
         return DEFAULT_NEX_SMS_SERVICE_CODE;
       }
+      if (provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+        return DEFAULT_NEXTACTION_NEX_SMS_SERVICE_CODE;
+      }
       if (provider === PHONE_SMS_PROVIDER_SMSBOWER) {
         return DEFAULT_SMSBOWER_SERVICE_CODE;
       }
@@ -1315,6 +1326,9 @@
       if (provider === PHONE_SMS_PROVIDER_NEXSMS) {
         return 'NexSMS';
       }
+      if (provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+        return 'NexSMS NextAction';
+      }
       if (provider === PHONE_SMS_PROVIDER_SMSBOWER) {
         return 'SMSBower';
       }
@@ -1617,6 +1631,25 @@
       return createResolvedNexSmsProvider();
     }
 
+    function createResolvedNextActionNexSmsProvider() {
+      const rootScope = typeof self !== 'undefined' ? self : globalThis;
+      const factory = createNextActionNexSmsProvider || rootScope.PhoneSmsNextActionNexSmsProvider?.createProvider;
+      if (typeof factory !== 'function') {
+        return null;
+      }
+      return factory({
+        addLog,
+        fetchImpl,
+        requestTimeoutMs: DEFAULT_PHONE_REQUEST_TIMEOUT_MS,
+        sleepWithStop,
+        throwIfStopped,
+      });
+    }
+
+    function getNextActionNexSmsProviderForState(_state = {}) {
+      return createResolvedNextActionNexSmsProvider();
+    }
+
     function createResolvedSmsBowerProvider() {
       const rootScope = typeof self !== 'undefined' ? self : globalThis;
       const factory = createSmsBowerProvider || rootScope.PhoneSmsBowerProvider?.createProvider;
@@ -1736,6 +1769,9 @@
       }
       if (providerId === PHONE_SMS_PROVIDER_NEXSMS) {
         return getNexSmsProviderForState(state);
+      }
+      if (providerId === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+        return getNextActionNexSmsProviderForState(state);
       }
       if (providerId === PHONE_SMS_PROVIDER_SMSBOWER) {
         return getSmsBowerProviderForState(state);
@@ -4469,6 +4505,12 @@
           return provider.requestActivation(state, options);
         }
       }
+      if (normalizePhoneSmsProvider(state?.phoneSmsProvider) === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+        const provider = getNextActionNexSmsProviderForState(state);
+        if (provider) {
+          return provider.requestActivation(state, options);
+        }
+      }
       if (normalizePhoneSmsProvider(state?.phoneSmsProvider) === PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER) {
         const provider = getSmsVerificationNumberProviderForState(state);
         if (provider) {
@@ -5575,6 +5617,15 @@
         }
         return resolveNexSmsCountryCandidates(state);
       }
+      if (normalizePhoneSmsProvider(providerId) === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+        const provider = getNextActionNexSmsProviderForState(state);
+        if (provider?.resolveCountryCandidates) {
+          return provider.resolveCountryCandidates(state);
+        }
+        return (Array.isArray(state?.nextActionNexSmsCountryOrder) ? state.nextActionNexSmsCountryOrder : DEFAULT_NEXTACTION_NEX_SMS_COUNTRY_ORDER)
+          .map((id) => ({ id: String(id || '').trim().toUpperCase(), label: String(id || '').trim().toUpperCase() }))
+          .filter((entry) => entry.id);
+      }
       if (normalizePhoneSmsProvider(providerId) === PHONE_SMS_PROVIDER_SMSBOWER) {
         const provider = getSmsBowerProviderForState(state);
         if (provider?.resolveCountryCandidates) {
@@ -6192,7 +6243,7 @@
         canUseSavedActivationForCurrentFlow
         && !Boolean(options?.skipPreferredActivation)
         && preferredActivation
-        && (provider === PHONE_SMS_PROVIDER_HERO || provider === PHONE_SMS_PROVIDER_5SIM || provider === PHONE_SMS_PROVIDER_SMSPOOL)
+        && (provider === PHONE_SMS_PROVIDER_HERO || provider === PHONE_SMS_PROVIDER_5SIM || provider === PHONE_SMS_PROVIDER_SMSPOOL || provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS)
         && preferredActivation.provider === provider
         && !blockedCountryIds.has(normalizeCountryKey(preferredActivation.countryId))
         && allowedCountryIds.has(normalizeCountryKey(preferredActivation.countryId))

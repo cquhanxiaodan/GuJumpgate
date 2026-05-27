@@ -12,6 +12,7 @@ importScripts(
   'phone-sms/providers/hero-sms.js',
   'phone-sms/providers/five-sim.js',
   'phone-sms/providers/nexsms.js',
+  'phone-sms/providers/nextaction-nexsms.js',
   'phone-sms/providers/smsbower.js',
   'phone-sms/providers/sms-verification-number.js',
   'phone-sms/providers/grizzlysms.js',
@@ -695,6 +696,7 @@ const PHONE_SMS_PROVIDER_5SIM = '5sim';
 const PHONE_SMS_PROVIDER_HERO_SMS = PHONE_SMS_PROVIDER_HERO;
 const PHONE_SMS_PROVIDER_FIVE_SIM = PHONE_SMS_PROVIDER_5SIM;
 const PHONE_SMS_PROVIDER_NEXSMS = 'nexsms';
+const PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS = 'nextaction-nexsms';
 const PHONE_SMS_PROVIDER_SMSBOWER = 'smsbower';
 const PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER = 'sms-verification-number';
 const PHONE_SMS_PROVIDER_GRIZZLYSMS = 'grizzlysms';
@@ -705,6 +707,7 @@ const DEFAULT_PHONE_SMS_PROVIDER_ORDER = Object.freeze([
   PHONE_SMS_PROVIDER_HERO,
   PHONE_SMS_PROVIDER_5SIM,
   PHONE_SMS_PROVIDER_NEXSMS,
+  PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS,
   PHONE_SMS_PROVIDER_SMSBOWER,
   PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER,
   PHONE_SMS_PROVIDER_GRIZZLYSMS,
@@ -718,6 +721,8 @@ const DEFAULT_FIVE_SIM_COUNTRY_ORDER = Object.freeze(['thailand']);
 const DEFAULT_NEX_SMS_BASE_URL = 'https://api.nexsms.net';
 const DEFAULT_NEX_SMS_SERVICE_CODE = 'ot';
 const DEFAULT_NEX_SMS_COUNTRY_ORDER = Object.freeze([1]);
+const DEFAULT_NEXTACTION_NEX_SMS_SERVICE_CODE = '671';
+const DEFAULT_NEXTACTION_NEX_SMS_COUNTRY_ORDER = Object.freeze(['US']);
 const DEFAULT_SMSBOWER_BASE_URL = 'https://smsbower.page/stubs/handler_api.php';
 const DEFAULT_SMSBOWER_SERVICE_CODE = 'dr';
 const DEFAULT_SMS_VERIFICATION_NUMBER_BASE_URL = 'https://sms-verification-number.com/stubs/handler_api';
@@ -1282,6 +1287,10 @@ const PERSISTED_SETTING_DEFAULTS = {
   nexSmsApiKey: '',
   nexSmsCountryOrder: [...DEFAULT_NEX_SMS_COUNTRY_ORDER],
   nexSmsServiceCode: DEFAULT_NEX_SMS_SERVICE_CODE,
+  nextActionNexSmsApiKey: '',
+  nextActionNexSmsCountryOrder: [...DEFAULT_NEXTACTION_NEX_SMS_COUNTRY_ORDER],
+  nextActionNexSmsServiceCode: DEFAULT_NEXTACTION_NEX_SMS_SERVICE_CODE,
+  nextActionNexSmsPricingOption: 0,
   smsBowerApiKey: '',
   smsBowerBaseUrl: DEFAULT_SMSBOWER_BASE_URL,
   smsBowerServiceCode: DEFAULT_SMSBOWER_SERVICE_CODE,
@@ -4200,6 +4209,19 @@ function normalizePersistentSettingValue(key, value) {
       return normalizeNexSmsCountryOrder(value);
     case 'nexSmsServiceCode':
       return normalizeNexSmsServiceCode(value);
+    case 'nextActionNexSmsApiKey':
+      return String(value || '');
+    case 'nextActionNexSmsCountryOrder':
+      return (Array.isArray(value) ? value : String(value || '').split(/[\r\n,，;；]+/))
+        .map((entry) => String(entry || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, ''))
+        .filter(Boolean)
+        .slice(0, 10);
+    case 'nextActionNexSmsServiceCode':
+      return String(value || DEFAULT_NEXTACTION_NEX_SMS_SERVICE_CODE).trim() || DEFAULT_NEXTACTION_NEX_SMS_SERVICE_CODE;
+    case 'nextActionNexSmsPricingOption': {
+      const parsed = Math.floor(Number(value));
+      return parsed === 1 ? 1 : 0;
+    }
     case 'smsBowerApiKey':
       return String(value || '');
     case 'smsBowerBaseUrl':
@@ -15315,6 +15337,7 @@ const phoneVerificationHelpers = self.MultiPageBackgroundPhoneVerification?.crea
   throwIfStopped,
   createFiveSimProvider: self.PhoneSmsFiveSimProvider?.createProvider,
   createNexSmsProvider: self.PhoneSmsNexSmsProvider?.createProvider,
+  createNextActionNexSmsProvider: self.PhoneSmsNextActionNexSmsProvider?.createProvider,
   createSmsBowerProvider: self.PhoneSmsBowerProvider?.createProvider,
   createSmsVerificationNumberProvider: self.PhoneSmsVerificationNumberProvider?.createProvider,
   createGrizzlySmsProvider: self.PhoneSmsGrizzlySmsProvider?.createProvider,

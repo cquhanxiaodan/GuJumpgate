@@ -515,6 +515,11 @@ const rowNexSmsApiKey = document.getElementById('row-nex-sms-api-key');
 const rowNexSmsCountry = document.getElementById('row-nex-sms-country');
 const rowNexSmsCountryFallback = document.getElementById('row-nex-sms-country-fallback');
 const rowNexSmsServiceCode = document.getElementById('row-nex-sms-service-code');
+const rowNextActionNexSmsApiKey = document.getElementById('row-nextaction-nex-sms-api-key');
+const rowNextActionNexSmsCountryOrder = document.getElementById('row-nextaction-nex-sms-country-order');
+const rowNextActionNexSmsServiceCode = document.getElementById('row-nextaction-nex-sms-service-code');
+const rowNextActionNexSmsPricingOption = document.getElementById('row-nextaction-nex-sms-pricing-option');
+const rowNextActionNexSmsOrders = document.getElementById('row-nextaction-nex-sms-orders');
 const rowHeroSmsRuntimePair = document.getElementById('row-hero-sms-runtime-pair');
 const rowHeroSmsCurrentNumber = document.getElementById('row-hero-sms-current-number');
 const rowHeroSmsCurrentCountdown = document.getElementById('row-hero-sms-current-countdown');
@@ -544,6 +549,15 @@ const inputFiveSimProduct = document.getElementById('input-five-sim-product');
 const inputNexSmsApiKey = document.getElementById('input-nex-sms-api-key');
 const btnToggleNexSmsApiKey = document.getElementById('btn-toggle-nex-sms-api-key');
 const inputNexSmsServiceCode = document.getElementById('input-nex-sms-service-code');
+const inputNextActionNexSmsApiKey = document.getElementById('input-nextaction-nex-sms-api-key');
+const inputNextActionNexSmsCountryOrder = document.getElementById('input-nextaction-nex-sms-country-order');
+const inputNextActionNexSmsServiceCode = document.getElementById('input-nextaction-nex-sms-service-code');
+const selectNextActionNexSmsPricingOption = document.getElementById('select-nextaction-nex-sms-pricing-option');
+const inputNextActionNexSmsImport = document.getElementById('input-nextaction-nex-sms-import');
+const btnNextActionNexSmsImport = document.getElementById('btn-nextaction-nex-sms-import');
+const btnNextActionNexSmsLoadCountries = document.getElementById('btn-nextaction-nex-sms-load-countries');
+const btnNextActionNexSmsLoadServices = document.getElementById('btn-nextaction-nex-sms-load-services');
+const btnNextActionNexSmsLoadOrders = document.getElementById('btn-nextaction-nex-sms-load-orders');
 const inputHeroSmsMinPrice = document.getElementById('input-hero-sms-min-price');
 const inputHeroSmsMaxPrice = document.getElementById('input-hero-sms-max-price');
 const inputHeroSmsPreferredPrice = document.getElementById('input-hero-sms-preferred-price');
@@ -734,6 +748,7 @@ const PHONE_SMS_PROVIDER_HERO = 'hero-sms';
 const PHONE_SMS_PROVIDER_FIVE_SIM = '5sim';
 const PHONE_SMS_PROVIDER_HERO_SMS = PHONE_SMS_PROVIDER_HERO;
 const PHONE_SMS_PROVIDER_NEXSMS = 'nexsms';
+const PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS = 'nextaction-nexsms';
 const PHONE_SMS_PROVIDER_SMSBOWER = 'smsbower';
 const PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER = 'sms-verification-number';
 const PHONE_SMS_PROVIDER_GRIZZLYSMS = 'grizzlysms';
@@ -744,6 +759,7 @@ const DEFAULT_PHONE_SMS_PROVIDER_ORDER = Object.freeze([
   PHONE_SMS_PROVIDER_HERO,
   PHONE_SMS_PROVIDER_FIVE_SIM,
   PHONE_SMS_PROVIDER_NEXSMS,
+  PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS,
   PHONE_SMS_PROVIDER_SMSBOWER,
   PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER,
   PHONE_SMS_PROVIDER_GRIZZLYSMS,
@@ -4170,6 +4186,9 @@ function collectSettingsPayload() {
   const phoneSmsProviderSmsPool = typeof PHONE_SMS_PROVIDER_SMSPOOL !== 'undefined'
     ? PHONE_SMS_PROVIDER_SMSPOOL
     : 'smspool';
+  const phoneSmsProviderNextActionNexsms = typeof PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS !== 'undefined'
+    ? PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS
+    : 'nextaction-nexsms';
   const heroSmsApiKeyValue = phoneSmsProviderValue === PHONE_SMS_PROVIDER_HERO_SMS
     ? currentPhoneSmsApiKeyValue
     : String(latestState?.heroSmsApiKey || '');
@@ -4179,6 +4198,9 @@ function collectSettingsPayload() {
   const nexSmsApiKeyValue = typeof inputNexSmsApiKey !== 'undefined' && inputNexSmsApiKey
     ? String(inputNexSmsApiKey.value || '')
     : String(latestState?.nexSmsApiKey || '');
+  const nextActionNexSmsApiKeyValue = typeof inputNextActionNexSmsApiKey !== 'undefined' && inputNextActionNexSmsApiKey
+    ? String(inputNextActionNexSmsApiKey.value || '')
+    : String(latestState?.nextActionNexSmsApiKey || '');
   const smsBowerApiKeyValue = phoneSmsProviderValue === phoneSmsProviderSmsBower
     ? currentPhoneSmsApiKeyValue
     : String(latestState?.smsBowerApiKey || '');
@@ -4277,7 +4299,7 @@ function collectSettingsPayload() {
   const currentPhoneSmsMinPriceValue = typeof inputHeroSmsMinPrice !== 'undefined' && inputHeroSmsMinPrice
     ? normalizePhoneSmsMinPriceValueSafe(inputHeroSmsMinPrice.value, phoneSmsProviderValue)
     : '';
-  const heroSmsMaxPriceValue = phoneSmsProviderValue === PHONE_SMS_PROVIDER_HERO_SMS
+  const heroSmsMaxPriceValue = (phoneSmsProviderValue === PHONE_SMS_PROVIDER_HERO_SMS || phoneSmsProviderValue === phoneSmsProviderNextActionNexsms)
     ? currentPhoneSmsMaxPriceValue
     : normalizeHeroSmsMaxPriceValue(latestState?.heroSmsMaxPrice || '');
   const fiveSimMaxPriceValue = phoneSmsProviderValue === PHONE_SMS_PROVIDER_FIVE_SIM
@@ -4344,6 +4366,15 @@ function collectSettingsPayload() {
   const phoneSmsProviderNexsms = typeof PHONE_SMS_PROVIDER_NEXSMS !== 'undefined'
     ? PHONE_SMS_PROVIDER_NEXSMS
     : 'nexsms';
+  const nextActionNexSmsCountryOrderValue = typeof inputNextActionNexSmsCountryOrder !== 'undefined' && inputNextActionNexSmsCountryOrder
+    ? String(inputNextActionNexSmsCountryOrder.value || '').split(/[\r\n,，;；]+/).map((entry) => entry.trim().toUpperCase()).filter(Boolean).slice(0, 10)
+    : (Array.isArray(latestState?.nextActionNexSmsCountryOrder) ? latestState.nextActionNexSmsCountryOrder : ['US']);
+  const nextActionNexSmsServiceCodeValue = typeof inputNextActionNexSmsServiceCode !== 'undefined' && inputNextActionNexSmsServiceCode
+    ? String(inputNextActionNexSmsServiceCode.value || '671').trim()
+    : String(latestState?.nextActionNexSmsServiceCode || '671').trim();
+  const nextActionNexSmsPricingOptionValue = typeof selectNextActionNexSmsPricingOption !== 'undefined' && selectNextActionNexSmsPricingOption
+    ? (String(selectNextActionNexSmsPricingOption.value || '0') === '1' ? 1 : 0)
+    : (Number(latestState?.nextActionNexSmsPricingOption) === 1 ? 1 : 0);
   const defaultNexSmsCountryOrder = typeof DEFAULT_NEX_SMS_COUNTRY_ORDER !== 'undefined'
     ? DEFAULT_NEX_SMS_COUNTRY_ORDER
     : [1];
@@ -4921,6 +4952,10 @@ function collectSettingsPayload() {
     nexSmsApiKey: nexSmsApiKeyValue,
     nexSmsCountryOrder: nexSmsCountryOrderValue,
     nexSmsServiceCode: nexSmsServiceCodeValue,
+    nextActionNexSmsApiKey: nextActionNexSmsApiKeyValue,
+    nextActionNexSmsCountryOrder: nextActionNexSmsCountryOrderValue,
+    nextActionNexSmsServiceCode: nextActionNexSmsServiceCodeValue || '671',
+    nextActionNexSmsPricingOption: nextActionNexSmsPricingOptionValue,
     smsBowerApiKey: smsBowerApiKeyValue,
     smsBowerServiceCode: latestState?.smsBowerServiceCode || 'dr',
     smsVerificationNumberApiKey: smsVerificationNumberApiKeyValue,
@@ -5045,6 +5080,9 @@ function normalizePhoneSmsProvider(value = '') {
   const nexSmsProvider = typeof PHONE_SMS_PROVIDER_NEXSMS !== 'undefined'
     ? PHONE_SMS_PROVIDER_NEXSMS
     : 'nexsms';
+  const nextActionNexSmsProvider = typeof PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS !== 'undefined'
+    ? PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS
+    : 'nextaction-nexsms';
   const smsBowerProvider = typeof PHONE_SMS_PROVIDER_SMSBOWER !== 'undefined'
     ? PHONE_SMS_PROVIDER_SMSBOWER
     : 'smsbower';
@@ -5066,6 +5104,9 @@ function normalizePhoneSmsProvider(value = '') {
   }
   if (normalized === nexSmsProvider) {
     return nexSmsProvider;
+  }
+  if (normalized === nextActionNexSmsProvider) {
+    return nextActionNexSmsProvider;
   }
   if (normalized === smsBowerProvider) {
     return smsBowerProvider;
@@ -5114,6 +5155,7 @@ function getPhoneSmsProviderLabel(provider = getSelectedPhoneSmsProvider()) {
   const normalized = normalizePhoneSmsProvider(provider);
   if (normalized === PHONE_SMS_PROVIDER_FIVE_SIM) return '5sim';
   if (normalized === PHONE_SMS_PROVIDER_NEXSMS) return 'NexSMS';
+  if (normalized === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) return 'NexSMS NextAction';
   if (normalized === PHONE_SMS_PROVIDER_SMSBOWER) return 'SMSBower';
   if (normalized === PHONE_SMS_PROVIDER_GRIZZLYSMS) return 'GrizzlySMS';
   if (normalized === PHONE_SMS_PROVIDER_SMSPOOL) return 'SMSPool';
@@ -8837,6 +8879,187 @@ async function buildFiveSimPricePreviewLines(options = {}) {
   return [`${providerLabel}:`, ...previews];
 }
 
+async function buildNextActionNexSmsPricePreviewLines(options = {}) {
+  const providerLabel = String(options?.providerLabel || 'NexSMS NextAction').trim();
+  const apiKey = String(inputNextActionNexSmsApiKey?.value || latestState?.nextActionNexSmsApiKey || '').trim();
+  const serviceCode = String(inputNextActionNexSmsServiceCode?.value || latestState?.nextActionNexSmsServiceCode || '671').trim() || '671';
+  const countryCodes = String(inputNextActionNexSmsCountryOrder?.value || (Array.isArray(latestState?.nextActionNexSmsCountryOrder) ? latestState.nextActionNexSmsCountryOrder.join(',') : 'US'))
+    .split(/[\r\n,，;；]+/)
+    .map((entry) => entry.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 10);
+  if (!apiKey) return [`${providerLabel}: 请先填写 NextAction API Key`];
+  if (!countryCodes.length) return [`${providerLabel}: 请先填写至少 1 个国家代码`];
+
+  const lines = [`${providerLabel}:`];
+  let countryStockByCode = new Map();
+  try {
+    const countriesUrl = new URL('/api/v1/countries', 'https://sms.nextactionplus.com');
+    countriesUrl.searchParams.set('service', serviceCode);
+    const countriesResponse = await fetch(countriesUrl.toString(), {
+      cache: 'no-store',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${apiKey}` },
+    });
+    const countriesPayload = await countriesResponse.json().catch(() => ({}));
+    const countryList = Array.isArray(countriesPayload?.countries) ? countriesPayload.countries : [];
+    countryStockByCode = new Map(countryList.map((entry) => [String(entry.code || entry.country_code || entry.country || '').trim().toUpperCase(), entry]));
+  } catch (error) {
+    lines.push(`国家库存查询失败：${normalizeHeroSmsFetchErrorMessage(error)}`);
+  }
+
+  for (const countryCode of countryCodes) {
+    const countryStock = countryStockByCode.get(countryCode);
+    const stockText = countryStock
+      ? `库存 ${countryStock.has_stock === false ? 0 : (countryStock.stock_count ?? '未知')}`
+      : '库存未知';
+    try {
+      const priceUrl = new URL('/api/v1/prices', 'https://sms.nextactionplus.com');
+      priceUrl.searchParams.set('service', serviceCode);
+      priceUrl.searchParams.set('country', countryCode);
+      const response = await fetch(priceUrl.toString(), {
+        cache: 'no-store',
+        headers: { Accept: 'application/json', Authorization: `Bearer ${apiKey}` },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        lines.push(`${countryCode}: ${stockText}；价格查询失败（${describeNexSmsPreviewPayload(payload) || `HTTP ${response.status}`}）`);
+        continue;
+      }
+      const prices = Array.isArray(payload?.prices) ? payload.prices : [];
+      const priceText = prices.length
+        ? prices.map((entry) => {
+          const label = String(entry.label || entry.name || (Number(entry.pricing_option) === 1 ? '高成功率' : '最低价')).trim();
+          const cents = Number(entry.price_cents ?? entry.price ?? entry.amount_cents ?? entry.cost_cents);
+          return Number.isFinite(cents) ? `${label} ¥${(cents / 100).toFixed(2)}` : label;
+        }).join('；')
+        : '暂无价格';
+      lines.push(`${countryCode}: ${stockText}；${priceText}`);
+    } catch (error) {
+      lines.push(`${countryCode}: ${stockText}；查询失败（${normalizeHeroSmsFetchErrorMessage(error)}）`);
+    }
+  }
+  return lines;
+}
+
+function buildNextActionNexSmsHeaders() {
+  const apiKey = String(inputNextActionNexSmsApiKey?.value || latestState?.nextActionNexSmsApiKey || '').trim();
+  if (!apiKey) throw new Error('请先填写 NextAction API Key');
+  return { Accept: 'application/json', Authorization: `Bearer ${apiKey}` };
+}
+
+function normalizeNextActionNexSmsServiceCodeInput(value = '') {
+  return String(value || '671').trim() || '671';
+}
+
+function parseNextActionNexSmsActivation(text = '') {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  const [phonePart, urlPart] = raw.split('----');
+  const phoneNumber = String(phonePart || '').trim();
+  const orderIdFromUrl = String(urlPart || '').match(/\/api\/(?:v1\/sms-url|orders)\/([^/?#]+)(?:\/sms-url)?/i)?.[1] || '';
+  const activationId = orderIdFromUrl ? decodeURIComponent(orderIdFromUrl) : raw;
+  if (!activationId) return null;
+  return {
+    activationId,
+    phoneNumber: phoneNumber || activationId,
+    provider: PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS,
+    serviceCode: normalizeNextActionNexSmsServiceCodeInput(inputNextActionNexSmsServiceCode?.value || latestState?.nextActionNexSmsServiceCode),
+    countryId: 'US',
+    countryLabel: 'US',
+    smsUrl: String(urlPart || '').trim(),
+    maxUses: 3,
+    successfulUses: 0,
+    canGetAnotherSms: true,
+    source: 'nextaction-import',
+  };
+}
+
+async function saveNextActionReusableActivation(activation) {
+  const currentState = await sendSidepanelMessage({ type: 'GET_STATE' }).catch(() => latestState || {});
+  const pool = Array.isArray(currentState?.phoneReusableActivationPool) ? [...currentState.phoneReusableActivationPool] : [];
+  const key = `${activation.provider}:${activation.activationId || activation.phoneNumber}`;
+  const nextPool = [activation, ...pool.filter((item) => `${item?.provider}:${item?.activationId || item?.phoneNumber}` !== key)].slice(0, 12);
+  await sendSidepanelMessage({
+    type: 'SAVE_SETTING',
+    payload: {
+      phoneSmsProvider: PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS,
+      phoneSmsReuseEnabled: true,
+      reusablePhoneActivation: activation,
+      phoneReusableActivationPool: nextPool,
+    },
+  });
+  latestState = { ...(latestState || {}), reusablePhoneActivation: activation, phoneReusableActivationPool: nextPool };
+  renderPhonePreferredActivationOptions(latestState);
+}
+
+async function loadNextActionNexSmsServices() {
+  const url = new URL('/api/v1/services', 'https://sms.nextactionplus.com');
+  const response = await fetch(url.toString(), { cache: 'no-store', headers: buildNextActionNexSmsHeaders() });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(describeNexSmsPreviewPayload(payload) || `HTTP ${response.status}`);
+  const services = Array.isArray(payload?.services) ? payload.services : [];
+  if (!services.length) throw new Error('服务列表为空');
+  const openAi = services.find((item) => /openai/i.test(`${item.name || ''} ${item.code || ''}`)) || services[0];
+  inputNextActionNexSmsServiceCode.value = String(openAi.code || openAi.id || openAi.service || '671').trim() || '671';
+  showToast?.(`已加载服务：${openAi.name || inputNextActionNexSmsServiceCode.value}`, 'ok', 2200);
+  await saveSettings({ silent: true });
+}
+
+async function loadNextActionNexSmsCountries() {
+  const serviceCode = normalizeNextActionNexSmsServiceCodeInput(inputNextActionNexSmsServiceCode?.value || latestState?.nextActionNexSmsServiceCode);
+  const url = new URL('/api/v1/countries', 'https://sms.nextactionplus.com');
+  url.searchParams.set('service', serviceCode);
+  const response = await fetch(url.toString(), { cache: 'no-store', headers: buildNextActionNexSmsHeaders() });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(describeNexSmsPreviewPayload(payload) || `HTTP ${response.status}`);
+  const countries = (Array.isArray(payload?.countries) ? payload.countries : [])
+    .filter((entry) => entry.has_stock !== false)
+    .map((entry) => String(entry.code || entry.country_code || entry.country || '').trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 10);
+  if (!countries.length) throw new Error('暂无有库存国家');
+  inputNextActionNexSmsCountryOrder.value = countries.join(',');
+  showToast?.(`已加载有库存国家：${countries.join(',')}`, 'ok', 2200);
+  await saveSettings({ silent: true });
+}
+
+async function loadNextActionNexSmsOrders() {
+  const url = new URL('/api/v1/orders', 'https://sms.nextactionplus.com');
+  url.searchParams.set('page', '1');
+  url.searchParams.set('page_size', '20');
+  const response = await fetch(url.toString(), { cache: 'no-store', headers: buildNextActionNexSmsHeaders() });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(describeNexSmsPreviewPayload(payload) || `HTTP ${response.status}`);
+  const orders = Array.isArray(payload?.orders) ? payload.orders : [];
+  const reusable = orders.find((order) => {
+    const status = String(order.status || '').toLowerCase();
+    return order.id && (order.phone_number_full || order.phone_number) && !/refunded|cancelled|canceled|expired|completed|finished/.test(status);
+  });
+  if (!reusable) throw new Error('未找到可复用订单');
+  const activation = {
+    activationId: String(reusable.id),
+    phoneNumber: String(reusable.phone_number_full || reusable.phone_number),
+    provider: PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS,
+    serviceCode: normalizeNextActionNexSmsServiceCodeInput(reusable.service || inputNextActionNexSmsServiceCode?.value),
+    countryId: String(reusable.country_code || 'US').toUpperCase(),
+    countryLabel: String(reusable.country || reusable.country_code || 'US'),
+    maxUses: 3,
+    successfulUses: 0,
+    canGetAnotherSms: true,
+    source: 'nextaction-orders',
+  };
+  await saveNextActionReusableActivation(activation);
+  showToast?.(`已导入可复用订单：${activation.phoneNumber}`, 'ok', 2400);
+}
+
+async function importNextActionNexSmsActivation() {
+  const activation = parseNextActionNexSmsActivation(inputNextActionNexSmsImport?.value || '');
+  if (!activation) throw new Error('请输入“手机号----接码URL”或订单 ID');
+  await saveNextActionReusableActivation(activation);
+  if (inputNextActionNexSmsImport) inputNextActionNexSmsImport.value = '';
+  showToast?.(`已导入复用号码：${activation.phoneNumber}`, 'ok', 2200);
+}
+
 async function previewHeroSmsPriceTiers() {
   const normalizeProvider = typeof normalizePhoneSmsProviderValue === 'function'
     ? normalizePhoneSmsProviderValue
@@ -8844,6 +9067,7 @@ async function previewHeroSmsPriceTiers() {
       const normalized = String(value || '').trim().toLowerCase();
       if (normalized === '5sim') return '5sim';
       if (normalized === 'nexsms') return 'nexsms';
+      if (normalized === 'nextaction-nexsms') return 'nextaction-nexsms';
       if (normalized === 'smsbower') return 'smsbower';
       if (normalized === 'sms-verification-number') return 'sms-verification-number';
       if (normalized === 'grizzlysms') return 'grizzlysms';
@@ -8853,6 +9077,7 @@ async function previewHeroSmsPriceTiers() {
     });
   const fiveSimProviderValue = typeof PHONE_SMS_PROVIDER_FIVE_SIM !== 'undefined' ? PHONE_SMS_PROVIDER_FIVE_SIM : '5sim';
   const nexSmsProviderValue = typeof PHONE_SMS_PROVIDER_NEXSMS !== 'undefined' ? PHONE_SMS_PROVIDER_NEXSMS : 'nexsms';
+  const nextActionNexSmsProviderValue = typeof PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS !== 'undefined' ? PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS : 'nextaction-nexsms';
   const smsBowerProviderValue = typeof PHONE_SMS_PROVIDER_SMSBOWER !== 'undefined' ? PHONE_SMS_PROVIDER_SMSBOWER : 'smsbower';
   const smsVerificationNumberProviderValue = typeof PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER !== 'undefined' ? PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER : 'sms-verification-number';
   const grizzlySmsProviderValue = typeof PHONE_SMS_PROVIDER_GRIZZLYSMS !== 'undefined' ? PHONE_SMS_PROVIDER_GRIZZLYSMS : 'grizzlysms';
@@ -8889,6 +9114,11 @@ async function previewHeroSmsPriceTiers() {
     }
     if (provider === nexSmsProviderValue) {
       const lines = await buildNexSmsPricePreviewLines({ providerLabel: 'NexSMS' });
+      previews.push(...lines, '');
+      continue;
+    }
+    if (provider === nextActionNexSmsProviderValue) {
+      const lines = await buildNextActionNexSmsPricePreviewLines({ providerLabel: 'NexSMS NextAction' });
       previews.push(...lines, '');
       continue;
     }
@@ -9429,7 +9659,9 @@ async function previewPhoneSmsBalance() {
   }
   const apiKey = provider === PHONE_SMS_PROVIDER_NEXSMS
     ? String(inputNexSmsApiKey?.value || '').trim()
-    : String(inputHeroSmsApiKey?.value || '').trim();
+    : (provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS
+      ? String(inputNextActionNexSmsApiKey?.value || '').trim()
+      : String(inputHeroSmsApiKey?.value || '').trim());
   const providerLabel = getPhoneSmsProviderLabel(provider);
   if (!apiKey) {
     displayPhoneSmsBalance.textContent = '请先填写接码 API Key';
@@ -9444,6 +9676,8 @@ async function previewPhoneSmsBalance() {
       url = new URL('https://5sim.net/v1/user/profile');
     } else if (provider === PHONE_SMS_PROVIDER_NEXSMS) {
       url = new URL('/api/balance', 'https://api.nexsms.net');
+    } else if (provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+      url = new URL('/api/v1/profile', 'https://sms.nextactionplus.com');
     } else if (provider === PHONE_SMS_PROVIDER_SMSBOWER) {
       url = new URL('https://smsbower.page/stubs/handler_api.php');
     } else if (provider === PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER) {
@@ -9463,6 +9697,8 @@ async function previewPhoneSmsBalance() {
       };
     } else if (provider === PHONE_SMS_PROVIDER_NEXSMS) {
       url.searchParams.set('apiKey', apiKey);
+    } else if (provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+      requestOptions.headers = { Accept: 'application/json', Authorization: `Bearer ${apiKey}` };
     } else {
       url.searchParams.set('action', 'getBalance');
       url.searchParams.set('api_key', apiKey);
@@ -9500,6 +9736,11 @@ async function previewPhoneSmsBalance() {
       displayPhoneSmsBalance.textContent = Number.isFinite(balance)
         ? `NexSMS 余额 ${formatHeroSmsPriceForPreview(balance) || balance}`
         : `NexSMS 余额：${describeNexSmsPreviewPayload(payload) || '未知'}`;
+    } else if (provider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS) {
+      const balance = Number(payload?.balance ?? payload?.balance_cents);
+      displayPhoneSmsBalance.textContent = Number.isFinite(balance)
+        ? `NexSMS NextAction 余额 ${payload?.balance_cents !== undefined ? `¥${(balance / 100).toFixed(2)}` : (formatHeroSmsPriceForPreview(balance) || balance)}`
+        : `NexSMS NextAction 余额：${describeNexSmsPreviewPayload(payload) || '未知'}`;
     } else if (provider === PHONE_SMS_PROVIDER_SMSBOWER) {
       const text = describeHeroSmsPreviewPayload(payload).replace(/^ACCESS_BALANCE:/i, '').trim();
       displayPhoneSmsBalance.textContent = `SMSBower 余额 ${text || '未知'}`;
@@ -10139,13 +10380,14 @@ function updatePhoneVerificationSettingsUI() {
   const heroProvider = provider === heroProviderValue;
   const fiveSimProvider = provider === fiveSimProviderValue;
   const nexSmsProvider = provider === nexSmsProviderValue;
+  const nextActionNexSmsProvider = provider === nextActionNexSmsProviderValue;
   const smsBowerProvider = provider === smsBowerProviderValue;
   const smsVerificationNumberProvider = provider === smsVerificationNumberProviderValue;
   const grizzlySmsProvider = provider === grizzlySmsProviderValue;
   const smsPoolProvider = provider === smsPoolProviderValue;
   const chatGptApiProvider = provider === chatGptApiProviderValue;
   const heroLikeProvider = heroProvider || smsBowerProvider || smsVerificationNumberProvider || grizzlySmsProvider || smsPoolProvider;
-  const priceCapableProvider = heroLikeProvider || fiveSimProvider || nexSmsProvider;
+  const priceCapableProvider = heroLikeProvider || fiveSimProvider || nexSmsProvider || nextActionNexSmsProvider;
   if (rowPhoneVerificationEnabled) {
     rowPhoneVerificationEnabled.style.display = canShowPhoneSettings ? '' : 'none';
   }
@@ -10181,6 +10423,11 @@ function updatePhoneVerificationSettingsUI() {
     typeof rowNexSmsCountry !== 'undefined' ? rowNexSmsCountry : null,
     typeof rowNexSmsCountryFallback !== 'undefined' ? rowNexSmsCountryFallback : null,
     typeof rowNexSmsServiceCode !== 'undefined' ? rowNexSmsServiceCode : null,
+    typeof rowNextActionNexSmsApiKey !== 'undefined' ? rowNextActionNexSmsApiKey : null,
+    typeof rowNextActionNexSmsCountryOrder !== 'undefined' ? rowNextActionNexSmsCountryOrder : null,
+    typeof rowNextActionNexSmsServiceCode !== 'undefined' ? rowNextActionNexSmsServiceCode : null,
+    typeof rowNextActionNexSmsPricingOption !== 'undefined' ? rowNextActionNexSmsPricingOption : null,
+    typeof rowNextActionNexSmsOrders !== 'undefined' ? rowNextActionNexSmsOrders : null,
     typeof rowHeroSmsMaxPrice !== 'undefined' ? rowHeroSmsMaxPrice : null,
     typeof rowFiveSimOperator !== 'undefined' ? rowFiveSimOperator : null,
     typeof rowPhoneCodeSettingsGroup !== 'undefined' ? rowPhoneCodeSettingsGroup : null,
@@ -10215,7 +10462,7 @@ function updatePhoneVerificationSettingsUI() {
   }
   if (rowHeroSmsCountry) rowHeroSmsCountry.style.display = showSettings && heroLikeProvider ? '' : 'none';
   if (rowHeroSmsCountryFallback) rowHeroSmsCountryFallback.style.display = showSettings && heroLikeProvider ? '' : 'none';
-  if (rowHeroSmsAcquirePriority) rowHeroSmsAcquirePriority.style.display = showSettings && heroLikeProvider ? '' : 'none';
+  if (rowHeroSmsAcquirePriority) rowHeroSmsAcquirePriority.style.display = showSettings && (heroLikeProvider || nextActionNexSmsProvider) ? '' : 'none';
   if (rowHeroSmsApiKey) rowHeroSmsApiKey.style.display = showSettings && heroLikeProvider ? '' : 'none';
   if (rowFiveSimApiKey) rowFiveSimApiKey.style.display = showSettings && fiveSimProvider ? '' : 'none';
   if (rowFiveSimCountry) rowFiveSimCountry.style.display = showSettings && fiveSimProvider ? '' : 'none';
@@ -10226,6 +10473,11 @@ function updatePhoneVerificationSettingsUI() {
   if (rowNexSmsCountry) rowNexSmsCountry.style.display = showSettings && nexSmsProvider ? '' : 'none';
   if (rowNexSmsCountryFallback) rowNexSmsCountryFallback.style.display = showSettings && nexSmsProvider ? '' : 'none';
   if (rowNexSmsServiceCode) rowNexSmsServiceCode.style.display = showSettings && nexSmsProvider ? '' : 'none';
+  if (rowNextActionNexSmsApiKey) rowNextActionNexSmsApiKey.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
+  if (rowNextActionNexSmsCountryOrder) rowNextActionNexSmsCountryOrder.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
+  if (rowNextActionNexSmsServiceCode) rowNextActionNexSmsServiceCode.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
+  if (rowNextActionNexSmsPricingOption) rowNextActionNexSmsPricingOption.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
+  if (rowNextActionNexSmsOrders) rowNextActionNexSmsOrders.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
   if (rowFiveSimOperator) {
     rowFiveSimOperator.style.display = showSettings && fiveSimProvider ? '' : 'none';
   }
@@ -11996,6 +12248,20 @@ function applySettingsState(state) {
     inputNexSmsServiceCode.value = typeof normalizeNexSmsServiceCodeValue === 'function'
       ? normalizeNexSmsServiceCodeValue(state?.nexSmsServiceCode || defaultNexSmsServiceCode)
       : String(state?.nexSmsServiceCode || defaultNexSmsServiceCode).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '') || defaultNexSmsServiceCode;
+  }
+  if (typeof inputNextActionNexSmsApiKey !== 'undefined' && inputNextActionNexSmsApiKey) {
+    inputNextActionNexSmsApiKey.value = String(state?.nextActionNexSmsApiKey || '');
+  }
+  if (typeof inputNextActionNexSmsCountryOrder !== 'undefined' && inputNextActionNexSmsCountryOrder) {
+    inputNextActionNexSmsCountryOrder.value = (Array.isArray(state?.nextActionNexSmsCountryOrder) && state.nextActionNexSmsCountryOrder.length
+      ? state.nextActionNexSmsCountryOrder
+      : ['US']).join(',');
+  }
+  if (typeof inputNextActionNexSmsServiceCode !== 'undefined' && inputNextActionNexSmsServiceCode) {
+    inputNextActionNexSmsServiceCode.value = String(state?.nextActionNexSmsServiceCode || '671').trim() || '671';
+  }
+  if (typeof selectNextActionNexSmsPricingOption !== 'undefined' && selectNextActionNexSmsPricingOption) {
+    selectNextActionNexSmsPricingOption.value = Number(state?.nextActionNexSmsPricingOption) === 1 ? '1' : '0';
   }
   if (typeof inputHeroSmsReuseEnabled !== 'undefined' && inputHeroSmsReuseEnabled) {
     inputHeroSmsReuseEnabled.checked = restoredPhoneSmsProvider === PHONE_SMS_PROVIDER_SMSBOWER
@@ -18089,6 +18355,65 @@ inputNexSmsServiceCode?.addEventListener('blur', () => {
   inputNexSmsServiceCode.value = normalizeNexSmsServiceCodeValue(inputNexSmsServiceCode.value);
   updateHeroSmsPlatformDisplay();
   saveSettings({ silent: true }).catch(() => { });
+});
+
+[
+  inputNextActionNexSmsApiKey,
+  inputNextActionNexSmsCountryOrder,
+  inputNextActionNexSmsServiceCode,
+].forEach((input) => {
+  input?.addEventListener('input', () => {
+    markSettingsDirty(true);
+    scheduleSettingsAutoSave();
+  });
+  input?.addEventListener('blur', () => {
+    if (input === inputNextActionNexSmsCountryOrder) {
+      input.value = String(input.value || '').split(/[\r\n,，;；]+/).map((entry) => entry.trim().toUpperCase()).filter(Boolean).join(',');
+    }
+    if (input === inputNextActionNexSmsServiceCode) {
+      input.value = String(input.value || '671').trim() || '671';
+    }
+    updateHeroSmsPlatformDisplay();
+    saveSettings({ silent: true }).catch(() => { });
+  });
+});
+
+selectNextActionNexSmsPricingOption?.addEventListener('change', () => {
+  markSettingsDirty(true);
+  updateHeroSmsPlatformDisplay();
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+btnNextActionNexSmsLoadServices?.addEventListener('click', async () => {
+  try {
+    await loadNextActionNexSmsServices();
+  } catch (error) {
+    showToast?.(`服务加载失败：${error?.message || error}`, 'warn', 2600);
+  }
+});
+
+btnNextActionNexSmsLoadCountries?.addEventListener('click', async () => {
+  try {
+    await loadNextActionNexSmsCountries();
+  } catch (error) {
+    showToast?.(`国家加载失败：${error?.message || error}`, 'warn', 2600);
+  }
+});
+
+btnNextActionNexSmsLoadOrders?.addEventListener('click', async () => {
+  try {
+    await loadNextActionNexSmsOrders();
+  } catch (error) {
+    showToast?.(`订单加载失败：${error?.message || error}`, 'warn', 2600);
+  }
+});
+
+btnNextActionNexSmsImport?.addEventListener('click', async () => {
+  try {
+    await importNextActionNexSmsActivation();
+  } catch (error) {
+    showToast?.(`导入失败：${error?.message || error}`, 'warn', 2600);
+  }
 });
 
 inputHeroSmsReuseEnabled?.addEventListener('change', () => {

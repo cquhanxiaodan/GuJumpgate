@@ -5,6 +5,7 @@
   const PROVIDER_HERO_SMS = 'hero-sms';
   const PROVIDER_FIVE_SIM = '5sim';
   const PROVIDER_NEXSMS = 'nexsms';
+  const PROVIDER_NEXTACTION_NEXSMS = 'nextaction-nexsms';
   const PROVIDER_SMSBOWER = 'smsbower';
   const PROVIDER_SMS_VERIFICATION_NUMBER = 'sms-verification-number';
   const PROVIDER_GRIZZLYSMS = 'grizzlysms';
@@ -15,6 +16,7 @@
     PROVIDER_HERO_SMS,
     PROVIDER_FIVE_SIM,
     PROVIDER_NEXSMS,
+    PROVIDER_NEXTACTION_NEXSMS,
     PROVIDER_SMSBOWER,
     PROVIDER_SMS_VERIFICATION_NUMBER,
     PROVIDER_GRIZZLYSMS,
@@ -41,6 +43,13 @@
       label: 'NexSMS',
       moduleKey: 'PhoneSmsNexSmsProvider',
       supportsActivationReuse: false,
+      supportsFreePhoneReuse: false,
+    }),
+    [PROVIDER_NEXTACTION_NEXSMS]: Object.freeze({
+      id: PROVIDER_NEXTACTION_NEXSMS,
+      label: 'NexSMS NextAction',
+      moduleKey: 'PhoneSmsNextActionNexSmsProvider',
+      supportsActivationReuse: true,
       supportsFreePhoneReuse: false,
     }),
     [PROVIDER_SMSBOWER]: Object.freeze({
@@ -184,6 +193,7 @@
     PROVIDER_HERO_SMS,
     PROVIDER_FIVE_SIM,
     PROVIDER_NEXSMS,
+    PROVIDER_NEXTACTION_NEXSMS,
     PROVIDER_SMSBOWER,
     PROVIDER_SMS_VERIFICATION_NUMBER,
     PROVIDER_GRIZZLYSMS,

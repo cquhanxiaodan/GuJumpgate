@@ -11,6 +11,7 @@ test('provider registry exposes activation-reuse support matrix', () => {
   assert.equal(registry.supportsActivationReuse('smspool'), true);
 
   assert.equal(registry.supportsActivationReuse('nexsms'), false);
+  assert.equal(registry.supportsActivationReuse('nextaction-nexsms'), true);
   assert.equal(registry.supportsActivationReuse('smsbower'), false);
   assert.equal(registry.supportsActivationReuse('sms-verification-number'), false);
   assert.equal(registry.supportsActivationReuse('grizzlysms'), false);
@@ -24,6 +25,7 @@ test('provider registry exposes free-phone-reuse support matrix', () => {
   assert.equal(registry.supportsFreePhoneReuse('smspool'), true);
 
   assert.equal(registry.supportsFreePhoneReuse('nexsms'), false);
+  assert.equal(registry.supportsFreePhoneReuse('nextaction-nexsms'), false);
   assert.equal(registry.supportsFreePhoneReuse('sms-verification-number'), false);
   assert.equal(registry.supportsFreePhoneReuse('grizzlysms'), false);
   assert.equal(registry.supportsFreePhoneReuse('chatgpt-api'), false);

@@ -1624,6 +1624,7 @@
                 <option value="hero-sms">HeroSMS</option>
                 <option value="5sim">5sim</option>
                 <option value="nexsms">NexSMS</option>
+                <option value="nextaction-nexsms">NexSMS NextAction</option>
                 <option value="smsbower">SMSBower</option>
                 <option value="sms-verification-number">SMS Verification Number</option>
                 <option value="grizzlysms">GrizzlySMS</option>
@@ -1638,6 +1639,7 @@
                   <option value="hero-sms" selected>HeroSMS</option>
                   <option value="5sim" selected>5sim</option>
                   <option value="nexsms" selected>NexSMS</option>
+                  <option value="nextaction-nexsms" selected>NexSMS NextAction</option>
                   <option value="smsbower" selected>SMSBower</option>
                   <option value="sms-verification-number" selected>SMS Verification Number</option>
                   <option value="grizzlysms" selected>GrizzlySMS</option>
@@ -1647,7 +1649,7 @@
                 <div class="hero-sms-country-mainline">
                   <div id="phone-sms-provider-order-menu-shell" class="hero-sms-country-menu">
                     <button id="btn-phone-sms-provider-order-menu" class="btn btn-outline btn-sm hero-sms-country-menu-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-                      HeroSMS / 5sim / NexSMS / SMSBower / SMS Verification Number / GrizzlySMS / SMSPool / ChatGPT API 接码 (8/8)
+                      HeroSMS / 5sim / NexSMS / NexSMS NextAction / SMSBower / SMS Verification Number / GrizzlySMS / SMSPool / ChatGPT API 接码 (9/9)
                     </button>
                     <div id="phone-sms-provider-order-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
@@ -1695,7 +1697,7 @@
               <select id="select-hero-sms-acquire-priority" class="data-input mono">
                 <option value="country">国家优先（默认）</option>
                 <option value="price">低价优先（同价按国家顺序）</option>
-                <option value="price_high">高价优先（同价按国家顺序）</option>
+                <option value="price_high">高成功率优先（同价按国家顺序）</option>
               </select>
             </div>
             <div class="data-row" id="row-hero-sms-api-key" style="display:none;">
@@ -1790,6 +1792,48 @@
               <span class="data-label">服务代码</span>
               <input type="text" id="input-nex-sms-service-code" class="data-input mono"
                 placeholder="ot" />
+            </div>
+            <div class="data-row" id="row-nextaction-nex-sms-api-key" style="display:none;">
+              <span class="data-label">NextAction API</span>
+              <div class="input-with-icon">
+                <input type="password" id="input-nextaction-nex-sms-api-key" class="data-input data-input-with-icon mono"
+                  placeholder="请输入 nx_sms_xxx" />
+                <button id="btn-toggle-nextaction-nex-sms-api-key" class="input-icon-btn" type="button"
+                  data-password-toggle="input-nextaction-nex-sms-api-key" data-show-label="显示 NextAction API Key"
+                  data-hide-label="隐藏 NextAction API Key" aria-label="显示 NextAction API Key" title="显示 NextAction API Key"></button>
+              </div>
+            </div>
+            <div class="data-row" id="row-nextaction-nex-sms-country-order" style="display:none;">
+              <span class="data-label">国家代码</span>
+              <div class="data-inline data-value-actions">
+                <input type="text" id="input-nextaction-nex-sms-country-order" class="data-input mono"
+                  placeholder="US" />
+                <button id="btn-nextaction-nex-sms-load-countries" class="btn btn-ghost btn-xs data-inline-btn" type="button">加载</button>
+              </div>
+            </div>
+            <div class="data-row" id="row-nextaction-nex-sms-service-code" style="display:none;">
+              <span class="data-label">服务代码</span>
+              <div class="data-inline data-value-actions">
+                <input type="text" id="input-nextaction-nex-sms-service-code" class="data-input mono"
+                  placeholder="671" />
+                <button id="btn-nextaction-nex-sms-load-services" class="btn btn-ghost btn-xs data-inline-btn" type="button">服务</button>
+              </div>
+            </div>
+            <div class="data-row" id="row-nextaction-nex-sms-pricing-option" style="display:none;">
+              <span class="data-label">价格模式</span>
+              <select id="select-nextaction-nex-sms-pricing-option" class="data-input mono">
+                <option value="0">最低价</option>
+                <option value="1">高成功率</option>
+              </select>
+            </div>
+            <div class="data-row" id="row-nextaction-nex-sms-orders" style="display:none;">
+              <span class="data-label">NextAction 订单</span>
+              <div class="data-inline data-value-actions">
+                <input type="text" id="input-nextaction-nex-sms-import" class="data-input mono"
+                  placeholder="手机号----接码URL 或订单ID" />
+                <button id="btn-nextaction-nex-sms-import" class="btn btn-ghost btn-xs data-inline-btn" type="button">导入复用</button>
+                <button id="btn-nextaction-nex-sms-load-orders" class="btn btn-ghost btn-xs data-inline-btn" type="button">订单</button>
+              </div>
             </div>
             <div class="data-row" id="row-hero-sms-max-price" style="display:none;">
               <span class="data-label">价格区间</span>
@@ -2160,6 +2204,8 @@
   <script src="../gopay-utils.js"></script>
   <script src="../phone-sms/providers/hero-sms.js"></script>
   <script src="../phone-sms/providers/five-sim.js"></script>
+  <script src="../phone-sms/providers/nexsms.js"></script>
+  <script src="../phone-sms/providers/nextaction-nexsms.js"></script>
   <script src="../phone-sms/providers/smsbower.js"></script>
   <script src="../phone-sms/providers/sms-verification-number.js"></script>
   <script src="../phone-sms/providers/grizzlysms.js"></script>
