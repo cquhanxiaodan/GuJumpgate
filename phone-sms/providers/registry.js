@@ -50,7 +50,7 @@
       label: 'NexSMS NextAction',
       moduleKey: 'PhoneSmsNextActionNexSmsProvider',
       supportsActivationReuse: true,
-      supportsFreePhoneReuse: false,
+      supportsFreePhoneReuse: true,
     }),
     [PROVIDER_SMSBOWER]: Object.freeze({
       id: PROVIDER_SMSBOWER,

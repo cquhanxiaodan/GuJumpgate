@@ -7234,6 +7234,7 @@ function supportsFreePhoneReuseProvider(provider = '') {
   }
   return normalized === PHONE_SMS_PROVIDER_HERO
     || normalized === PHONE_SMS_PROVIDER_FIVE_SIM
+    || normalized === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS
     || normalized === PHONE_SMS_PROVIDER_SMSBOWER
     || normalized === PHONE_SMS_PROVIDER_SMSPOOL;
 }

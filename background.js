@@ -9522,6 +9522,7 @@ function supportsFreePhoneReuseProvider(providerId = '') {
   }
   return normalizedProvider === PHONE_SMS_PROVIDER_HERO
     || normalizedProvider === PHONE_SMS_PROVIDER_5SIM
+    || normalizedProvider === PHONE_SMS_PROVIDER_NEXTACTION_NEXSMS
     || normalizedProvider === PHONE_SMS_PROVIDER_SMSBOWER
     || normalizedProvider === PHONE_SMS_PROVIDER_SMSPOOL;
 }

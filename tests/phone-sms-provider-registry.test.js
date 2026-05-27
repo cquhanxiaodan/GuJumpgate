@@ -23,9 +23,9 @@ test('provider registry exposes free-phone-reuse support matrix', () => {
   assert.equal(registry.supportsFreePhoneReuse('5sim'), true);
   assert.equal(registry.supportsFreePhoneReuse('smsbower'), true);
   assert.equal(registry.supportsFreePhoneReuse('smspool'), true);
+  assert.equal(registry.supportsFreePhoneReuse('nextaction-nexsms'), true);
 
   assert.equal(registry.supportsFreePhoneReuse('nexsms'), false);
-  assert.equal(registry.supportsFreePhoneReuse('nextaction-nexsms'), false);
   assert.equal(registry.supportsFreePhoneReuse('sms-verification-number'), false);
   assert.equal(registry.supportsFreePhoneReuse('grizzlysms'), false);
   assert.equal(registry.supportsFreePhoneReuse('chatgpt-api'), false);
