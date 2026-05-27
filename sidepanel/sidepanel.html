@@ -1804,11 +1804,29 @@
               </div>
             </div>
             <div class="data-row" id="row-nextaction-nex-sms-country-order" style="display:none;">
-              <span class="data-label">国家代码</span>
-              <div class="data-inline data-value-actions">
-                <input type="text" id="input-nextaction-nex-sms-country-order" class="data-input mono"
-                  placeholder="US" />
+              <span class="data-label">国家优先级</span>
+              <div class="data-inline hero-sms-country-stack">
+                <select id="select-nextaction-nex-sms-country" class="data-input mono" multiple size="6" style="display:none;">
+                  <option value="US" selected>US</option>
+                </select>
+                <input type="text" id="input-nextaction-nex-sms-country-order" class="data-input mono" placeholder="US" hidden />
+                <div class="hero-sms-country-mainline">
+                  <div id="nextaction-nex-sms-country-menu-shell" class="hero-sms-country-menu">
+                    <button id="btn-nextaction-nex-sms-country-menu" class="btn btn-outline btn-sm hero-sms-country-menu-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+                      US (1/10)
+                    </button>
+                    <div id="nextaction-nex-sms-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
+                  </div>
+                </div>
+                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
                 <button id="btn-nextaction-nex-sms-load-countries" class="btn btn-ghost btn-xs data-inline-btn" type="button">加载</button>
+              </div>
+            </div>
+            <div class="data-row" id="row-nextaction-nex-sms-country-fallback" style="display:none;">
+              <span class="data-label">生效顺序</span>
+              <div class="data-inline data-value-actions">
+                <span id="display-nextaction-nex-sms-country-order" class="data-value data-value-fill mono country-order-list">US</span>
+                <button id="btn-nextaction-nex-sms-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">清空</button>
               </div>
             </div>
             <div class="data-row" id="row-nextaction-nex-sms-service-code" style="display:none;">

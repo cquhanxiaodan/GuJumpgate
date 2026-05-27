@@ -517,6 +517,7 @@ const rowNexSmsCountryFallback = document.getElementById('row-nex-sms-country-fa
 const rowNexSmsServiceCode = document.getElementById('row-nex-sms-service-code');
 const rowNextActionNexSmsApiKey = document.getElementById('row-nextaction-nex-sms-api-key');
 const rowNextActionNexSmsCountryOrder = document.getElementById('row-nextaction-nex-sms-country-order');
+const rowNextActionNexSmsCountryFallback = document.getElementById('row-nextaction-nex-sms-country-fallback');
 const rowNextActionNexSmsServiceCode = document.getElementById('row-nextaction-nex-sms-service-code');
 const rowNextActionNexSmsPricingOption = document.getElementById('row-nextaction-nex-sms-pricing-option');
 const rowNextActionNexSmsOrders = document.getElementById('row-nextaction-nex-sms-orders');
@@ -551,6 +552,11 @@ const btnToggleNexSmsApiKey = document.getElementById('btn-toggle-nex-sms-api-ke
 const inputNexSmsServiceCode = document.getElementById('input-nex-sms-service-code');
 const inputNextActionNexSmsApiKey = document.getElementById('input-nextaction-nex-sms-api-key');
 const inputNextActionNexSmsCountryOrder = document.getElementById('input-nextaction-nex-sms-country-order');
+const selectNextActionNexSmsCountry = document.getElementById('select-nextaction-nex-sms-country');
+const nextActionNexSmsCountryMenuShell = document.getElementById('nextaction-nex-sms-country-menu-shell');
+const btnNextActionNexSmsCountryMenu = document.getElementById('btn-nextaction-nex-sms-country-menu');
+const nextActionNexSmsCountryMenu = document.getElementById('nextaction-nex-sms-country-menu');
+const btnNextActionNexSmsCountryClear = document.getElementById('btn-nextaction-nex-sms-country-clear');
 const inputNextActionNexSmsServiceCode = document.getElementById('input-nextaction-nex-sms-service-code');
 const selectNextActionNexSmsPricingOption = document.getElementById('select-nextaction-nex-sms-pricing-option');
 const inputNextActionNexSmsImport = document.getElementById('input-nextaction-nex-sms-import');
@@ -610,6 +616,7 @@ const displayFreeReusablePhone = document.getElementById('display-free-reusable-
 const displayHeroSmsCountryFallbackOrder = document.getElementById('display-hero-sms-country-fallback-order');
 const displayFiveSimCountryFallbackOrder = document.getElementById('display-five-sim-country-fallback-order');
 const displayNexSmsCountryFallbackOrder = document.getElementById('display-nex-sms-country-fallback-order');
+const displayNextActionNexSmsCountryOrder = document.getElementById('display-nextaction-nex-sms-country-order');
 const displayPhoneSmsProviderOrder = document.getElementById('display-phone-sms-provider-order');
 const btnSaveFreeReusablePhone = document.getElementById('btn-save-free-reusable-phone');
 const btnClearFreeReusablePhone = document.getElementById('btn-clear-free-reusable-phone');
@@ -693,6 +700,9 @@ const fiveSimCountrySearchTextByCode = new Map();
 let nexSmsCountrySelectionOrder = [];
 let nexSmsCountryMenuSearchKeyword = '';
 const nexSmsCountrySearchTextById = new Map();
+let nextActionNexSmsCountrySelectionOrder = [];
+let nextActionNexSmsCountryMenuSearchKeyword = '';
+const nextActionNexSmsCountrySearchTextByCode = new Map();
 let stepDefinitions = getStepDefinitionsForMode(false, {
   plusPaymentMethod: currentPlusPaymentMethod,
   plusAccountAccessStrategy: currentPlusAccountAccessStrategy,
@@ -4355,9 +4365,11 @@ function collectSettingsPayload() {
   const phoneSmsProviderNexsms = typeof PHONE_SMS_PROVIDER_NEXSMS !== 'undefined'
     ? PHONE_SMS_PROVIDER_NEXSMS
     : 'nexsms';
-  const nextActionNexSmsCountryOrderValue = typeof inputNextActionNexSmsCountryOrder !== 'undefined' && inputNextActionNexSmsCountryOrder
-    ? String(inputNextActionNexSmsCountryOrder.value || '').split(/[\r\n,，;；]+/).map((entry) => entry.trim().toUpperCase()).filter(Boolean).slice(0, 10)
-    : (Array.isArray(latestState?.nextActionNexSmsCountryOrder) ? latestState.nextActionNexSmsCountryOrder : ['US']);
+  const nextActionNexSmsCountryOrderValue = typeof getSelectedNextActionNexSmsCountryOrder === 'function'
+    ? getSelectedNextActionNexSmsCountryOrder()
+    : (typeof inputNextActionNexSmsCountryOrder !== 'undefined' && inputNextActionNexSmsCountryOrder
+      ? normalizeNextActionNexSmsCountryCodes(inputNextActionNexSmsCountryOrder.value)
+      : (Array.isArray(latestState?.nextActionNexSmsCountryOrder) ? latestState.nextActionNexSmsCountryOrder : ['US']));
   const nextActionNexSmsServiceCodeValue = typeof inputNextActionNexSmsServiceCode !== 'undefined' && inputNextActionNexSmsServiceCode
     ? String(inputNextActionNexSmsServiceCode.value || '671').trim()
     : String(latestState?.nextActionNexSmsServiceCode || '671').trim();
@@ -8936,6 +8948,232 @@ async function buildNextActionNexSmsPricePreviewLines(options = {}) {
   return lines;
 }
 
+function normalizeNextActionNexSmsCountryCodes(value = []) {
+  const source = Array.isArray(value)
+    ? value
+    : String(value || '').split(/[\r\n,，;；]+/);
+  const seen = new Set();
+  const codes = [];
+  source.forEach((entry) => {
+    const code = String(entry && typeof entry === 'object' && !Array.isArray(entry)
+      ? (entry.code || entry.id || entry.country || '')
+      : entry || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_-]/g, '');
+    if (!code || seen.has(code)) return;
+    seen.add(code);
+    codes.push(code);
+  });
+  return codes.slice(0, HERO_SMS_COUNTRY_SELECTION_MAX);
+}
+
+function getNextActionNexSmsCountryLabelByCode(code = '') {
+  const normalizedCode = String(code || '').trim().toUpperCase();
+  const option = Array.from(selectNextActionNexSmsCountry?.options || [])
+    .find((entry) => String(entry.value || '').trim().toUpperCase() === normalizedCode);
+  return String(option?.textContent || normalizedCode).trim() || normalizedCode;
+}
+
+function syncNextActionNexSmsCountryInput(order = nextActionNexSmsCountrySelectionOrder) {
+  const codes = normalizeNextActionNexSmsCountryCodes(order);
+  if (inputNextActionNexSmsCountryOrder) {
+    inputNextActionNexSmsCountryOrder.value = codes.join(',');
+  }
+  return codes;
+}
+
+function renderNextActionNexSmsCountryOrder(codes = nextActionNexSmsCountrySelectionOrder) {
+  const normalizedCodes = normalizeNextActionNexSmsCountryCodes(codes);
+  if (displayNextActionNexSmsCountryOrder) {
+    displayNextActionNexSmsCountryOrder.textContent = normalizedCodes.length
+      ? normalizedCodes.map((code, index) => `${index + 1}. ${getNextActionNexSmsCountryLabelByCode(code)}`).join(' → ')
+      : '未设置';
+  }
+  if (btnNextActionNexSmsCountryMenu) {
+    btnNextActionNexSmsCountryMenu.textContent = normalizedCodes.length
+      ? `${normalizedCodes.map(getNextActionNexSmsCountryLabelByCode).join(' / ')} (${normalizedCodes.length}/${HERO_SMS_COUNTRY_SELECTION_MAX})`
+      : `未选择 (0/${HERO_SMS_COUNTRY_SELECTION_MAX})`;
+  }
+  syncNextActionNexSmsCountryInput(normalizedCodes);
+}
+
+function setNextActionNexSmsCountryMenuOpen(open) {
+  const nextOpen = Boolean(open);
+  if (btnNextActionNexSmsCountryMenu) {
+    btnNextActionNexSmsCountryMenu.setAttribute('aria-expanded', String(nextOpen));
+  }
+  if (nextActionNexSmsCountryMenu) {
+    nextActionNexSmsCountryMenu.hidden = !nextOpen;
+    if (!nextOpen) {
+      const searchInput = nextActionNexSmsCountryMenu.querySelector('.hero-sms-country-menu-search-input');
+      if (searchInput) searchInput.value = '';
+      nextActionNexSmsCountryMenuSearchKeyword = '';
+      applyNextActionNexSmsCountryMenuFilter('');
+    }
+  }
+}
+
+function applyNextActionNexSmsCountryMenuFilter(keyword = '') {
+  if (!nextActionNexSmsCountryMenu) return;
+  const normalizedKeyword = String(keyword || '').trim().toLowerCase();
+  const items = Array.from(nextActionNexSmsCountryMenu.querySelectorAll('.hero-sms-country-menu-item'));
+  let visibleCount = 0;
+  items.forEach((item) => {
+    const searchText = String(item.dataset.searchText || item.textContent || '').toLowerCase();
+    const visible = !normalizedKeyword || searchText.includes(normalizedKeyword);
+    item.hidden = !visible;
+    if (visible) visibleCount += 1;
+  });
+  let empty = nextActionNexSmsCountryMenu.querySelector('.hero-sms-country-menu-empty');
+  if (empty) empty.hidden = visibleCount > 0;
+}
+
+function renderNextActionNexSmsCountryMenu() {
+  if (!nextActionNexSmsCountryMenu || !selectNextActionNexSmsCountry) return;
+  const selectedOrder = normalizeNextActionNexSmsCountryCodes(nextActionNexSmsCountrySelectionOrder);
+  const selectedSet = new Set(selectedOrder);
+  nextActionNexSmsCountryMenu.innerHTML = '';
+
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'hero-sms-country-menu-search';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'data-input mono hero-sms-country-menu-search-input';
+  searchInput.placeholder = '搜索国家代码 / 名称';
+  searchInput.value = nextActionNexSmsCountryMenuSearchKeyword;
+  searchInput.addEventListener('input', () => {
+    nextActionNexSmsCountryMenuSearchKeyword = String(searchInput.value || '').trim();
+    applyNextActionNexSmsCountryMenuFilter(nextActionNexSmsCountryMenuSearchKeyword);
+  });
+  searchWrap.appendChild(searchInput);
+  nextActionNexSmsCountryMenu.appendChild(searchWrap);
+
+  const options = Array.from(selectNextActionNexSmsCountry.options || []);
+  if (!options.length) {
+    const empty = document.createElement('span');
+    empty.className = 'data-value hero-sms-country-menu-empty';
+    empty.textContent = '暂无国家，请先点击加载。';
+    nextActionNexSmsCountryMenu.appendChild(empty);
+    return;
+  }
+
+  options.forEach((option) => {
+    const code = String(option.value || '').trim().toUpperCase();
+    if (!code) return;
+    const active = selectedSet.has(code);
+    const orderIndex = active ? selectedOrder.findIndex((entry) => entry === code) + 1 : 0;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'hero-sms-country-menu-item';
+    item.classList.toggle('is-active', active);
+    item.dataset.searchText = nextActionNexSmsCountrySearchTextByCode.get(code) || `${option.textContent || code} ${code}`;
+    const labelText = document.createElement('span');
+    labelText.className = 'hero-sms-country-menu-item-label';
+    labelText.textContent = option.textContent || code;
+    const badge = document.createElement('span');
+    badge.className = 'hero-sms-country-menu-item-badge';
+    badge.textContent = active ? `#${orderIndex}` : '+';
+    item.append(labelText, badge);
+    item.addEventListener('click', () => toggleNextActionNexSmsCountryInOrder(code));
+    nextActionNexSmsCountryMenu.appendChild(item);
+  });
+  applyNextActionNexSmsCountryMenuFilter(nextActionNexSmsCountryMenuSearchKeyword);
+}
+
+function syncNextActionNexSmsCountrySelectionFromSelect(options = {}) {
+  const ensureDefault = options.ensureDefault !== false;
+  const enforceMax = options.enforceMax !== false;
+  const showLimitToast = Boolean(options.showLimitToast);
+  if (!selectNextActionNexSmsCountry) {
+    nextActionNexSmsCountrySelectionOrder = [];
+    renderNextActionNexSmsCountryOrder([]);
+    return [];
+  }
+  const selectedCodes = Array.from(selectNextActionNexSmsCountry.options || [])
+    .filter((option) => option.selected)
+    .map((option) => String(option.value || '').trim().toUpperCase())
+    .filter(Boolean);
+  const selectedSet = new Set(selectedCodes);
+  let nextOrder = nextActionNexSmsCountrySelectionOrder.filter((code) => selectedSet.has(code));
+  selectedCodes.forEach((code) => {
+    if (!nextOrder.includes(code)) nextOrder.push(code);
+  });
+  if (ensureDefault && !nextOrder.length) nextOrder = ['US'];
+  if (enforceMax && nextOrder.length > HERO_SMS_COUNTRY_SELECTION_MAX) {
+    const droppedCount = nextOrder.length - HERO_SMS_COUNTRY_SELECTION_MAX;
+    nextOrder = nextOrder.slice(0, HERO_SMS_COUNTRY_SELECTION_MAX);
+    if (showLimitToast && droppedCount > 0 && typeof showToast === 'function') {
+      showToast(`NextAction 国家最多选择 ${HERO_SMS_COUNTRY_SELECTION_MAX} 个，已保留前 ${HERO_SMS_COUNTRY_SELECTION_MAX} 个。`, 'warn', 2200);
+    }
+  }
+  const nextSet = new Set(nextOrder);
+  Array.from(selectNextActionNexSmsCountry.options || []).forEach((option) => {
+    option.selected = nextSet.has(String(option.value || '').trim().toUpperCase());
+  });
+  nextActionNexSmsCountrySelectionOrder = [...nextOrder];
+  renderNextActionNexSmsCountryOrder(nextOrder);
+  renderNextActionNexSmsCountryMenu();
+  return nextOrder;
+}
+
+function applyNextActionNexSmsCountrySelection(countries = [], options = {}) {
+  const selectedCodes = normalizeNextActionNexSmsCountryCodes(countries);
+  nextActionNexSmsCountrySelectionOrder = [...selectedCodes];
+  if (selectNextActionNexSmsCountry) {
+    const selectedSet = new Set(selectedCodes);
+    Array.from(selectNextActionNexSmsCountry.options || []).forEach((option) => {
+      option.selected = selectedSet.has(String(option.value || '').trim().toUpperCase());
+    });
+  }
+  return syncNextActionNexSmsCountrySelectionFromSelect({
+    ensureDefault: options.ensureDefault !== false,
+    enforceMax: true,
+    showLimitToast: false,
+  });
+}
+
+function toggleNextActionNexSmsCountryInOrder(code = '') {
+  const normalizedCode = normalizeNextActionNexSmsCountryCodes([code])[0] || '';
+  if (!normalizedCode || !selectNextActionNexSmsCountry) return [];
+  const option = Array.from(selectNextActionNexSmsCountry.options || [])
+    .find((entry) => String(entry.value || '').trim().toUpperCase() === normalizedCode);
+  if (option) option.selected = !option.selected;
+  const nextOrder = syncNextActionNexSmsCountrySelectionFromSelect({
+    enforceMax: true,
+    ensureDefault: false,
+    showLimitToast: true,
+  });
+  markSettingsDirty(true);
+  saveSettings({ silent: true }).catch(() => { });
+  return nextOrder;
+}
+
+function clearNextActionNexSmsCountrySelection() {
+  nextActionNexSmsCountrySelectionOrder = [];
+  if (selectNextActionNexSmsCountry) {
+    Array.from(selectNextActionNexSmsCountry.options || []).forEach((option) => {
+      option.selected = false;
+    });
+  }
+  const nextOrder = syncNextActionNexSmsCountrySelectionFromSelect({
+    ensureDefault: false,
+    enforceMax: true,
+    showLimitToast: false,
+  });
+  markSettingsDirty(true);
+  saveSettings({ silent: true }).catch(() => { });
+  return nextOrder;
+}
+
+function getSelectedNextActionNexSmsCountryOrder() {
+  return syncNextActionNexSmsCountrySelectionFromSelect({
+    ensureDefault: false,
+    enforceMax: true,
+    showLimitToast: false,
+  });
+}
+
 function buildNextActionNexSmsHeaders() {
   const apiKey = String(inputNextActionNexSmsApiKey?.value || latestState?.nextActionNexSmsApiKey || '').trim();
   if (!apiKey) throw new Error('请先填写 NextAction API Key');
@@ -9001,20 +9239,45 @@ async function loadNextActionNexSmsServices() {
 }
 
 async function loadNextActionNexSmsCountries() {
+  const previousOrder = [...nextActionNexSmsCountrySelectionOrder];
   const serviceCode = normalizeNextActionNexSmsServiceCodeInput(inputNextActionNexSmsServiceCode?.value || latestState?.nextActionNexSmsServiceCode);
   const url = new URL('/api/v1/countries', 'https://sms.nextactionplus.com');
   url.searchParams.set('service', serviceCode);
   const response = await fetch(url.toString(), { cache: 'no-store', headers: buildNextActionNexSmsHeaders() });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(describeNexSmsPreviewPayload(payload) || `HTTP ${response.status}`);
-  const countries = (Array.isArray(payload?.countries) ? payload.countries : [])
+  const countryEntries = (Array.isArray(payload?.countries) ? payload.countries : [])
     .filter((entry) => entry.has_stock !== false)
-    .map((entry) => String(entry.code || entry.country_code || entry.country || '').trim().toUpperCase())
-    .filter(Boolean)
-    .slice(0, 10);
-  if (!countries.length) throw new Error('暂无有库存国家');
-  inputNextActionNexSmsCountryOrder.value = countries.join(',');
-  showToast?.(`已加载有库存国家：${countries.join(',')}`, 'ok', 2200);
+    .map((entry) => {
+      const code = String(entry.code || entry.country_code || entry.country || '').trim().toUpperCase();
+      if (!code) return null;
+      const name = String(entry.name || entry.label || entry.country_name || code).trim() || code;
+      const stockCount = entry.stock_count ?? entry.stock ?? entry.count;
+      const label = name === code ? code : `${name} [${code}]`;
+      return {
+        code,
+        label: stockCount !== undefined && stockCount !== null ? `${label} / 库存 ${stockCount}` : label,
+        searchText: `${label} ${code} ${name}`,
+      };
+    })
+    .filter(Boolean);
+  if (!countryEntries.length) throw new Error('暂无有库存国家');
+  if (selectNextActionNexSmsCountry) {
+    selectNextActionNexSmsCountry.innerHTML = '';
+    nextActionNexSmsCountrySearchTextByCode.clear();
+    countryEntries.forEach((entry) => {
+      const option = document.createElement('option');
+      option.value = entry.code;
+      option.textContent = entry.label;
+      selectNextActionNexSmsCountry.appendChild(option);
+      nextActionNexSmsCountrySearchTextByCode.set(entry.code, entry.searchText);
+    });
+  }
+  const fallbackOrder = previousOrder.length ? previousOrder : (Array.isArray(latestState?.nextActionNexSmsCountryOrder) ? latestState.nextActionNexSmsCountryOrder : []);
+  const nextOrder = applyNextActionNexSmsCountrySelection(fallbackOrder.length ? fallbackOrder : countryEntries.map((entry) => entry.code).slice(0, 10), {
+    ensureDefault: false,
+  });
+  showToast?.(`已加载有库存国家：${nextOrder.join(',')}`, 'ok', 2200);
   await saveSettings({ silent: true });
 }
 
@@ -10421,6 +10684,7 @@ function updatePhoneVerificationSettingsUI() {
     typeof rowNexSmsServiceCode !== 'undefined' ? rowNexSmsServiceCode : null,
     typeof rowNextActionNexSmsApiKey !== 'undefined' ? rowNextActionNexSmsApiKey : null,
     typeof rowNextActionNexSmsCountryOrder !== 'undefined' ? rowNextActionNexSmsCountryOrder : null,
+    typeof rowNextActionNexSmsCountryFallback !== 'undefined' ? rowNextActionNexSmsCountryFallback : null,
     typeof rowNextActionNexSmsServiceCode !== 'undefined' ? rowNextActionNexSmsServiceCode : null,
     typeof rowNextActionNexSmsPricingOption !== 'undefined' ? rowNextActionNexSmsPricingOption : null,
     typeof rowNextActionNexSmsOrders !== 'undefined' ? rowNextActionNexSmsOrders : null,
@@ -10471,6 +10735,7 @@ function updatePhoneVerificationSettingsUI() {
   if (rowNexSmsServiceCode) rowNexSmsServiceCode.style.display = showSettings && nexSmsProvider ? '' : 'none';
   if (rowNextActionNexSmsApiKey) rowNextActionNexSmsApiKey.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
   if (rowNextActionNexSmsCountryOrder) rowNextActionNexSmsCountryOrder.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
+  if (rowNextActionNexSmsCountryFallback) rowNextActionNexSmsCountryFallback.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
   if (rowNextActionNexSmsServiceCode) rowNextActionNexSmsServiceCode.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
   if (rowNextActionNexSmsPricingOption) rowNextActionNexSmsPricingOption.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
   if (rowNextActionNexSmsOrders) rowNextActionNexSmsOrders.style.display = showSettings && nextActionNexSmsProvider ? '' : 'none';
@@ -12249,9 +12514,13 @@ function applySettingsState(state) {
     inputNextActionNexSmsApiKey.value = String(state?.nextActionNexSmsApiKey || '');
   }
   if (typeof inputNextActionNexSmsCountryOrder !== 'undefined' && inputNextActionNexSmsCountryOrder) {
-    inputNextActionNexSmsCountryOrder.value = (Array.isArray(state?.nextActionNexSmsCountryOrder) && state.nextActionNexSmsCountryOrder.length
+    const restoredNextActionCountries = (Array.isArray(state?.nextActionNexSmsCountryOrder) && state.nextActionNexSmsCountryOrder.length
       ? state.nextActionNexSmsCountryOrder
-      : ['US']).join(',');
+      : ['US']);
+    inputNextActionNexSmsCountryOrder.value = restoredNextActionCountries.join(',');
+    if (typeof applyNextActionNexSmsCountrySelection === 'function') {
+      applyNextActionNexSmsCountrySelection(restoredNextActionCountries, { ensureDefault: false });
+    }
   }
   if (typeof inputNextActionNexSmsServiceCode !== 'undefined' && inputNextActionNexSmsServiceCode) {
     inputNextActionNexSmsServiceCode.value = String(state?.nextActionNexSmsServiceCode || '671').trim() || '671';
@@ -18364,7 +18633,9 @@ inputNexSmsServiceCode?.addEventListener('blur', () => {
   });
   input?.addEventListener('blur', () => {
     if (input === inputNextActionNexSmsCountryOrder) {
-      input.value = String(input.value || '').split(/[\r\n,，;；]+/).map((entry) => entry.trim().toUpperCase()).filter(Boolean).join(',');
+      const codes = normalizeNextActionNexSmsCountryCodes(input.value);
+      input.value = codes.join(',');
+      applyNextActionNexSmsCountrySelection(codes, { ensureDefault: false });
     }
     if (input === inputNextActionNexSmsServiceCode) {
       input.value = String(input.value || '671').trim() || '671';
@@ -18394,6 +18665,28 @@ btnNextActionNexSmsLoadCountries?.addEventListener('click', async () => {
   } catch (error) {
     showToast?.(`国家加载失败：${error?.message || error}`, 'warn', 2600);
   }
+});
+
+btnNextActionNexSmsCountryMenu?.addEventListener('click', (event) => {
+  event.preventDefault();
+  const nextOpen = btnNextActionNexSmsCountryMenu.getAttribute('aria-expanded') !== 'true';
+  setNextActionNexSmsCountryMenuOpen(nextOpen);
+});
+
+selectNextActionNexSmsCountry?.addEventListener('change', () => {
+  const nextOrder = syncNextActionNexSmsCountrySelectionFromSelect({
+    enforceMax: true,
+    ensureDefault: false,
+    showLimitToast: true,
+  });
+  syncNextActionNexSmsCountryInput(nextOrder);
+  markSettingsDirty(true);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+btnNextActionNexSmsCountryClear?.addEventListener('click', () => {
+  clearNextActionNexSmsCountrySelection();
+  setNextActionNexSmsCountryMenuOpen(false);
 });
 
 btnNextActionNexSmsLoadOrders?.addEventListener('click', async () => {
@@ -20070,6 +20363,7 @@ document.addEventListener('click', (event) => {
   const clickedInsideCountryMenu = Boolean(heroSmsCountryMenuShell?.contains(event.target));
   const clickedInsideFiveSimCountryMenu = Boolean(fiveSimCountryMenuShell?.contains(event.target));
   const clickedInsideNexSmsCountryMenu = Boolean(nexSmsCountryMenuShell?.contains(event.target));
+  const clickedInsideNextActionNexSmsCountryMenu = Boolean(nextActionNexSmsCountryMenuShell?.contains(event.target));
   const clickedInsideProviderOrderMenu = Boolean(phoneSmsProviderOrderMenuShell?.contains(event.target));
   const clickedInsideEditableListPicker = isClickInsideEditableListPicker(event.target);
 
@@ -20088,6 +20382,10 @@ document.addEventListener('click', (event) => {
   const nexSmsCountryMenuOpen = btnNexSmsCountryMenu?.getAttribute('aria-expanded') === 'true';
   if (nexSmsCountryMenuOpen && !clickedInsideNexSmsCountryMenu) {
     setNexSmsCountryMenuOpen(false);
+  }
+  const nextActionNexSmsCountryMenuOpen = btnNextActionNexSmsCountryMenu?.getAttribute('aria-expanded') === 'true';
+  if (nextActionNexSmsCountryMenuOpen && !clickedInsideNextActionNexSmsCountryMenu) {
+    setNextActionNexSmsCountryMenuOpen(false);
   }
   const providerOrderMenuOpen = btnPhoneSmsProviderOrderMenu?.getAttribute('aria-expanded') === 'true';
   if (providerOrderMenuOpen && !clickedInsideProviderOrderMenu) {
@@ -20113,6 +20411,9 @@ document.addEventListener('keydown', (event) => {
   }
   if (btnNexSmsCountryMenu?.getAttribute('aria-expanded') === 'true') {
     setNexSmsCountryMenuOpen(false);
+  }
+  if (btnNextActionNexSmsCountryMenu?.getAttribute('aria-expanded') === 'true') {
+    setNextActionNexSmsCountryMenuOpen(false);
   }
   if (btnPhoneSmsProviderOrderMenu?.getAttribute('aria-expanded') === 'true') {
     setPhoneSmsProviderOrderMenuOpen(false);
@@ -20161,6 +20462,7 @@ const initialPhoneCountryLoadPromise = Promise.allSettled([
   loadFiveSimCountries(),
   loadNexSmsCountries({ silent: true }),
 ]);
+applyNextActionNexSmsCountrySelection(['US'], { ensureDefault: false });
 void restoreState().then(async () => {
   await initialPhoneCountryLoadPromise;
   rehydratePhoneVerificationSelectionsFromState(latestState);
