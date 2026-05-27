@@ -2854,10 +2854,6 @@ async function ensureIcloudApiCredentialForEmail(email = '', state = null) {
 }
 
 async function markCurrentCustomEmailPoolEntryUsed(state = {}, options = {}) {
-  if (!isCustomEmailPoolGenerator(state)) {
-    return { updated: false };
-  }
-
   const currentEmail = String(state?.email || '').trim().toLowerCase();
   if (!currentEmail) {
     return { updated: false };
@@ -2865,6 +2861,11 @@ async function markCurrentCustomEmailPoolEntryUsed(state = {}, options = {}) {
 
   const entries = getCustomEmailPoolEntries(state);
   if (!entries.length) {
+    return { updated: false };
+  }
+
+  const hasCurrentEntry = entries.some((entry) => entry.email === currentEmail);
+  if (!hasCurrentEntry) {
     return { updated: false };
   }
 
@@ -9540,7 +9541,11 @@ async function finalizeIcloudAliasAfterSuccessfulFlow(state) {
     return { handled: false, deleted: false };
   }
 
-  const knownIcloudAlias = normalizeEmailGenerator(state?.emailGenerator) === 'icloud'
+  const normalizedMailProvider = String(state?.mailProvider || '').trim().toLowerCase();
+  const knownIcloudAlias = normalizedMailProvider === ICLOUD_PROVIDER
+    || normalizedMailProvider === ICLOUD_API_PROVIDER
+    || normalizeEmailGenerator(state?.emailGenerator) === 'icloud'
+    || Boolean(getIcloudManualCredentialForEmail(state, email))
     || Object.prototype.hasOwnProperty.call(getManualAliasUsageMap(state), email)
     || Object.prototype.hasOwnProperty.call(getPreservedAliasMap(state), email);
   if (!knownIcloudAlias) {
