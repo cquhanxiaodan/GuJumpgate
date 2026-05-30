@@ -369,6 +369,13 @@
   }
 
   function normalizePlusPaymentMethod(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === PLUS_PAYMENT_METHOD_GOPAY) {
+      return PLUS_PAYMENT_METHOD_GOPAY;
+    }
+    if (normalized === PLUS_PAYMENT_METHOD_GPC_HELPER) {
+      return PLUS_PAYMENT_METHOD_GPC_HELPER;
+    }
     return PLUS_PAYMENT_METHOD_PAYPAL;
   }
 

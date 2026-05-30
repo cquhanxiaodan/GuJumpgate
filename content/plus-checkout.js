@@ -1269,7 +1269,7 @@ function buildPlusCheckoutPayload(paymentMethod = PLUS_PAYMENT_METHOD_PAYPAL) {
   const config = getPaymentMethodConfig(paymentMethod);
   return {
     ...JSON.parse(JSON.stringify(PLUS_CHECKOUT_PAYLOAD_BASE)),
-    checkout_ui_mode: paymentMethod === PLUS_PAYMENT_METHOD_PAYPAL ? 'hosted' : 'custom',
+    checkout_ui_mode: 'hosted',
     billing_details: {
       ...config.billingDetails,
     },
@@ -1355,9 +1355,7 @@ async function createPlusCheckoutSession(options = {}) {
   const processorEntity = DEFAULT_CONVERTED_CHECKOUT_PROCESSOR_ENTITY;
   const hostedCheckoutUrl = findHostedCheckoutUrl(data);
   const chatgptCheckoutUrl = buildConvertedChatGptCheckoutUrl(data.checkout_session_id, processorEntity);
-  const preferredCheckoutUrl = paymentMethod === PLUS_PAYMENT_METHOD_PAYPAL
-    ? (hostedCheckoutUrl || chatgptCheckoutUrl)
-    : chatgptCheckoutUrl;
+  const preferredCheckoutUrl = hostedCheckoutUrl || chatgptCheckoutUrl;
 
   return {
     checkoutUrl: buildPlusCheckoutUrl(data.checkout_session_id, paymentMethod),
