@@ -405,6 +405,13 @@
     }
 
     function normalizePlusPaymentMethod(value = '') {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'gopay') {
+        return 'gopay';
+      }
+      if (normalized === 'gpc-helper') {
+        return 'gpc-helper';
+      }
       return 'paypal';
     }
 

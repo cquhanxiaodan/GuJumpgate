@@ -2736,7 +2736,17 @@ async function persistOperationDelayToggle() {
 }
 
 function normalizePlusPaymentMethod(value = '') {
-  return typeof PLUS_PAYMENT_METHOD_PAYPAL !== 'undefined' ? PLUS_PAYMENT_METHOD_PAYPAL : 'paypal';
+  const normalized = String(value || '').trim().toLowerCase();
+  const paypalValue = typeof PLUS_PAYMENT_METHOD_PAYPAL !== 'undefined' ? PLUS_PAYMENT_METHOD_PAYPAL : 'paypal';
+  const gopayValue = typeof PLUS_PAYMENT_METHOD_GOPAY !== 'undefined' ? PLUS_PAYMENT_METHOD_GOPAY : 'gopay';
+  const gpcValue = typeof PLUS_PAYMENT_METHOD_GPC_HELPER !== 'undefined' ? PLUS_PAYMENT_METHOD_GPC_HELPER : 'gpc-helper';
+  if (normalized === gopayValue) {
+    return gopayValue;
+  }
+  if (normalized === gpcValue) {
+    return gpcValue;
+  }
+  return paypalValue;
 }
 
 function getSelectedPlusPaymentMethod(state = latestState) {
