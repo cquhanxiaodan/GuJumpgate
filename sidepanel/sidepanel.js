@@ -14255,6 +14255,7 @@ function updateMailProviderUI() {
       || 'icloud.com');
   const icloudTargetMailboxType = normalizeIcloudTargetMailboxType(icloudTargetMailboxTypeValue);
   const isIcloudComCnHost = selectedIcloudHost === 'icloud.com.cn';
+  const showIcloudApiSettings = useIcloudApiProvider || (useEmailGenerator && useIcloud);
   const showIcloudTargetMailboxType = useIcloudProvider && !useIcloudApiProvider;
   const showIcloudForwardMailProvider = useIcloudProvider && !useIcloudApiProvider && icloudTargetMailboxType === 'forward-mailbox';
   const showCloudflareTempEmailRandomSubdomainToggle = useEmailGenerator && useCloudflareTempEmailGenerator;
@@ -14314,10 +14315,10 @@ function updateMailProviderUI() {
     rowIcloudForwardMailProvider.style.display = showIcloudForwardMailProvider ? '' : 'none';
   }
   if (typeof rowIcloudApiBaseUrl !== 'undefined' && rowIcloudApiBaseUrl) {
-    rowIcloudApiBaseUrl.style.display = useIcloudApiProvider ? '' : 'none';
+    rowIcloudApiBaseUrl.style.display = showIcloudApiSettings ? '' : 'none';
   }
   if (typeof rowIcloudApiAdminKey !== 'undefined' && rowIcloudApiAdminKey) {
-    rowIcloudApiAdminKey.style.display = useIcloudApiProvider ? '' : 'none';
+    rowIcloudApiAdminKey.style.display = showIcloudApiSettings ? '' : 'none';
   }
   rowCfDomain.style.display = showCloudflareDomain ? '' : 'none';
   const { domains } = getCloudflareDomainsFromState();
@@ -15130,10 +15131,10 @@ function updateButtonStates() {
     selectIcloudForwardMailProvider.disabled = disableIcloudControls || !allowIcloudForwardMailProvider;
   }
   if (inputIcloudApiBaseUrl) {
-    inputIcloudApiBaseUrl.disabled = disableIcloudControls || !isIcloudApiMailProvider();
+    inputIcloudApiBaseUrl.disabled = disableIcloudControls;
   }
   if (inputIcloudApiAdminKey) {
-    inputIcloudApiAdminKey.disabled = disableIcloudControls || !isIcloudApiMailProvider();
+    inputIcloudApiAdminKey.disabled = disableIcloudControls;
   }
   if (selectIcloudFetchMode) {
     const allowIcloudFetchMode = getSelectedEmailGenerator() === ICLOUD_PROVIDER
