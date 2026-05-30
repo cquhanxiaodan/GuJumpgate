@@ -2923,11 +2923,43 @@ function getIcloudManualCredentialForEmail(state = {}, email = '') {
     || getCustomEmailPoolCredentialForEmail(state, normalizedEmail);
 }
 
+function resolveIcloudApiPollingCredential(state = {}, email = '') {
+  const candidates = [
+    email,
+    state?.step8VerificationTargetEmail,
+    state?.email,
+    state?.registrationEmailState?.current,
+    state?.registrationEmailState?.previous,
+  ]
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+  const seen = new Set();
+  for (const candidate of candidates) {
+    if (seen.has(candidate)) continue;
+    seen.add(candidate);
+    const credential = getIcloudManualCredentialForEmail(state, candidate);
+    if (credential) {
+      return { email: candidate, credential };
+    }
+  }
+
+  const rawCredential = String(email || '').trim();
+  if (rawCredential.includes('----')) {
+    return {
+      email: rawCredential.slice(0, rawCredential.indexOf('----')).trim().toLowerCase(),
+      credential: rawCredential,
+    };
+  }
+
+  return { email: candidates[0] || '', credential: '' };
+}
+
 function shouldUseIcloudApiPollingForEmail(state = {}, email = '') {
+  const resolved = resolveIcloudApiPollingCredential(state, email);
   return Boolean(
     normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl)
     && String(state?.icloudApiAdminKey || '')
-    && getIcloudManualCredentialForEmail(state, email)
+    && resolved.credential
   );
 }
 
@@ -7007,9 +7039,10 @@ async function pollHotmailVerificationCode(step, state, pollPayload = {}) {
 async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
   const baseUrl = normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl);
   const adminKey = String(state?.icloudApiAdminKey || '');
-  const targetEmail = String(pollPayload?.targetEmail || state?.email || '').trim().toLowerCase();
-  const credential = getIcloudManualCredentialForEmail(state, targetEmail)
-    || targetEmail;
+  const requestedTargetEmail = String(pollPayload?.targetEmail || state?.email || '').trim().toLowerCase();
+  const resolvedCredential = resolveIcloudApiPollingCredential(state, requestedTargetEmail);
+  const targetEmail = resolvedCredential.email || requestedTargetEmail;
+  const credential = resolvedCredential.credential || requestedTargetEmail;
   const endpoint = buildIcloudApiEndpoint(baseUrl);
 
   if (!endpoint) {
