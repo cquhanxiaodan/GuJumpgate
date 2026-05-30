@@ -2496,7 +2496,15 @@
           if (!emails.length) throw new Error('请选择要同步的 iCloud 隐藏邮箱。');
           const apiBaseUrl = String(message.payload?.apiBaseUrl || '').trim();
           const apiAdminKey = String(message.payload?.apiAdminKey || '');
+          const currentState = await getState();
+          const currentCredentials = currentState?.icloudApiCredentials && typeof currentState.icloudApiCredentials === 'object'
+            ? currentState.icloudApiCredentials
+            : {};
           const credentials = emails.map((email) => {
+            const existingCredential = String(currentCredentials[email] || '').trim();
+            if (existingCredential.includes('----')) {
+              return existingCredential;
+            }
             const secretBytes = crypto.getRandomValues(new Uint8Array(24));
             const secret = Array.from(secretBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
             return `${email}----${secret}`;
