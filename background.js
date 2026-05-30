@@ -2959,7 +2959,7 @@ function shouldUseIcloudApiPollingForEmail(state = {}, email = '') {
   return Boolean(
     normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl)
     && String(state?.icloudApiAdminKey || '')
-    && resolved.credential
+    && resolved.email
   );
 }
 
@@ -7051,8 +7051,8 @@ async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
   if (!adminKey) {
     throw new Error('iCloud API 管理员密码为空，请在侧栏配置 qq-hidden-mail-viewer 的管理员密码。');
   }
-  if (!credential || !credential.includes('----')) {
-    throw new Error('当前邮箱缺少隐藏邮箱凭据，请先在 iCloud 隐私邮箱列表中同步到 API，或在自定义邮箱池导入“隐藏邮箱地址----密钥”。');
+  if (!credential) {
+    throw new Error('当前邮箱为空，无法通过 iCloud API 查询验证码。');
   }
 
   const maxAttempts = Number(pollPayload.maxAttempts) || 5;
