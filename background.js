@@ -7173,6 +7173,9 @@ function isGeneratedAliasProvider(stateOrProvider, mail2925Mode = undefined) {
 }
 
 function shouldUseCustomRegistrationEmail(state = {}) {
+  if (shouldUseIcloudApiPollingForEmail(state)) {
+    return false;
+  }
   return isCustomMailProvider(state)
     || (!isHotmailProvider(state)
       && !isGeneratedAliasProvider(state)
@@ -7342,6 +7345,9 @@ function isGeneratedAliasProvider(stateOrProvider, mail2925Mode = undefined) {
 }
 
 function shouldUseCustomRegistrationEmail(state = {}) {
+  if (shouldUseIcloudApiPollingForEmail(state)) {
+    return false;
+  }
   return isCustomMailProvider(state)
     || (!isHotmailProvider(state)
       && !isGeneratedAliasProvider(state)
@@ -16419,6 +16425,9 @@ async function executeStep3(state) {
 // ============================================================
 
 function getMailConfig(state) {
+  if (shouldUseIcloudApiPollingForEmail(state)) {
+    return { provider: ICLOUD_API_PROVIDER, label: 'iCloud API（QQ 转发）' };
+  }
   const provider = state.mailProvider || 'qq';
   if (provider === 'custom') {
     return { provider: 'custom', label: '自定义邮箱' };
