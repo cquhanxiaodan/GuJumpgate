@@ -702,6 +702,8 @@ const PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER = 'sms-verification-number';
 const PHONE_SMS_PROVIDER_GRIZZLYSMS = 'grizzlysms';
 const PHONE_SMS_PROVIDER_SMSPOOL = 'smspool';
 const PHONE_SMS_PROVIDER_CHATGPT_API = 'chatgpt-api';
+const CHATGPT_API_COUNTRY_ID = 187;
+const CHATGPT_API_COUNTRY_LABEL = 'Canada';
 const DEFAULT_PHONE_SMS_PROVIDER = PHONE_SMS_PROVIDER_HERO;
 const DEFAULT_PHONE_SMS_PROVIDER_ORDER = Object.freeze([
   PHONE_SMS_PROVIDER_HERO,
@@ -9994,7 +9996,11 @@ function normalizeLocalReusablePhoneActivation(record) {
   const countryId = provider === PHONE_SMS_PROVIDER_5SIM
     ? normalizeFiveSimCountryId(record.countryCode ?? record.countryId ?? record.country, '')
     : Math.max(0, Math.floor(Number(record.countryId ?? record.country ?? record.countryCode) || 0));
-  const countryLabel = String(record.countryLabel || record.label || '').trim();
+  const countryLabel = String(
+    record.countryLabel
+    || record.label
+    || (provider === PHONE_SMS_PROVIDER_CHATGPT_API && countryId === CHATGPT_API_COUNTRY_ID ? CHATGPT_API_COUNTRY_LABEL : '')
+  ).trim();
   const serviceCode = String(record.serviceCode || record.service || getPhoneDefaultServiceCodeByProvider(provider)).trim()
     || getPhoneDefaultServiceCodeByProvider(provider);
   return {
@@ -10070,6 +10076,8 @@ async function setFreeReusablePhoneActivation(record = {}) {
   const hasExplicitCountry = provider === PHONE_SMS_PROVIDER_5SIM
     ? Boolean(String(record.countryCode || record.countryId || '').trim())
     : Number.isFinite(Number(record.countryId)) && Number(record.countryId) > 0;
+  const chatGptApiDefaultCountryId = provider === PHONE_SMS_PROVIDER_CHATGPT_API ? CHATGPT_API_COUNTRY_ID : 0;
+  const chatGptApiDefaultCountryLabel = provider === PHONE_SMS_PROVIDER_CHATGPT_API ? CHATGPT_API_COUNTRY_LABEL : '';
   const countryId = provider === PHONE_SMS_PROVIDER_5SIM
     ? normalizeFiveSimCountryId(
       record.countryCode || record.countryId || localActivation?.countryId || inferredCountry?.id || state.fiveSimCountryId || FIVE_SIM_COUNTRY_ID,
@@ -10080,6 +10088,7 @@ async function setFreeReusablePhoneActivation(record = {}) {
       Math.floor(
         Number(record.countryId)
         || Number(localActivation?.countryId)
+        || chatGptApiDefaultCountryId
         || Number(inferredCountry?.id)
         || Number(state.smsPoolCountryId && provider === PHONE_SMS_PROVIDER_SMSPOOL ? state.smsPoolCountryId : 0)
         || Number(state.heroSmsCountryId)
@@ -10096,6 +10105,7 @@ async function setFreeReusablePhoneActivation(record = {}) {
   const countryLabel = String(
     record.countryLabel
     || (String(localActivation?.countryId || '') === String(countryId || '') ? localActivation?.countryLabel : '')
+    || (chatGptApiDefaultCountryId === Number(countryId) ? chatGptApiDefaultCountryLabel : '')
     || (!hasExplicitCountry && String(inferredCountry?.id || '') === String(countryId || '') ? inferredCountry.label : '')
     || stateCountryLabel
     || (provider === PHONE_SMS_PROVIDER_5SIM

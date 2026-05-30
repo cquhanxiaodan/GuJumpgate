@@ -5,6 +5,8 @@
   const PROVIDER_LABEL = 'ChatGPT API 接码';
   const DEFAULT_SERVICE_LABEL = 'OpenAI / ChatGPT';
   const DEFAULT_SERVICE_CODE = 'custom-api';
+  const DEFAULT_COUNTRY_ID = 187;
+  const DEFAULT_COUNTRY_LABEL = 'Canada';
   const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
   const MAX_SUCCESS_USES = 3;
   const POOL_SEPARATOR = '----';
@@ -24,7 +26,7 @@
     { prefix: '33', id: 78, label: 'France' },
     { prefix: '56', id: 151, label: 'Chile' },
     { prefix: '81', id: 182, label: 'Japan' },
-    { prefix: '1', id: 187, label: 'USA' },
+    { prefix: '1', id: DEFAULT_COUNTRY_ID, label: DEFAULT_COUNTRY_LABEL },
   ]);
   const POOL_TEXT_KEY = 'chatGptApiSmsPoolText';
   const POOL_USAGE_KEY = 'chatGptApiSmsPoolUsage';
@@ -403,18 +405,17 @@
         currentEntry: selectedEntry,
       });
       await addLog(`步骤 9：${PROVIDER_LABEL}已选择号码 ${selectedEntry.phone}。`, 'info');
-      const inferredCountry = inferCountryFromPhoneNumber(selectedEntry.phone);
+      const inferredCountry = inferCountryFromPhoneNumber(selectedEntry.phone) || {
+        id: DEFAULT_COUNTRY_ID,
+        label: DEFAULT_COUNTRY_LABEL,
+      };
       return {
         activationId: selectedEntry.key,
         phoneNumber: selectedEntry.phone,
         provider: PROVIDER_ID,
         serviceCode: DEFAULT_SERVICE_CODE,
-        ...(inferredCountry
-          ? {
-            countryId: inferredCountry.id,
-            countryLabel: inferredCountry.label,
-          }
-          : {}),
+        countryId: inferredCountry.id,
+        countryLabel: inferredCountry.label,
       };
     }
 

@@ -785,6 +785,8 @@ const PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER = 'sms-verification-number';
 const PHONE_SMS_PROVIDER_GRIZZLYSMS = 'grizzlysms';
 const PHONE_SMS_PROVIDER_SMSPOOL = 'smspool';
 const PHONE_SMS_PROVIDER_CHATGPT_API = 'chatgpt-api';
+const CHATGPT_API_COUNTRY_ID = 187;
+const CHATGPT_API_COUNTRY_LABEL = 'Canada';
 const DEFAULT_PHONE_SMS_PROVIDER = PHONE_SMS_PROVIDER_HERO;
 const DEFAULT_PHONE_SMS_PROVIDER_ORDER = Object.freeze([
   PHONE_SMS_PROVIDER_HERO,
@@ -7473,11 +7475,16 @@ function normalizePhoneActivationState(record = {}) {
     );
   } else if (provider === PHONE_SMS_PROVIDER_NEXSMS) {
     normalized.countryId = normalizeNexSmsCountryId(record.countryId, -1);
+  } else if (provider === PHONE_SMS_PROVIDER_CHATGPT_API) {
+    normalized.countryId = normalizeHeroSmsCountryId(record.countryId, CHATGPT_API_COUNTRY_ID);
   } else {
     normalized.countryId = normalizeHeroSmsCountryId(record.countryId, 0);
   }
 
-  const countryLabel = String(record.countryLabel || '').trim();
+  const countryLabel = String(
+    record.countryLabel
+    || (provider === PHONE_SMS_PROVIDER_CHATGPT_API && normalized.countryId === CHATGPT_API_COUNTRY_ID ? CHATGPT_API_COUNTRY_LABEL : '')
+  ).trim();
   if (countryLabel) {
     normalized.countryLabel = countryLabel;
   }
@@ -7514,6 +7521,10 @@ function resolvePhoneActivationCountryLabel(activation = null) {
   if (normalized.provider === PHONE_SMS_PROVIDER_NEXSMS) {
     const countryId = normalizeNexSmsCountryId(normalized.countryId, -1);
     return countryId >= 0 ? `Country #${countryId}` : '';
+  }
+  if (normalized.provider === PHONE_SMS_PROVIDER_CHATGPT_API) {
+    const countryId = normalizeHeroSmsCountryId(normalized.countryId, CHATGPT_API_COUNTRY_ID);
+    return countryId === CHATGPT_API_COUNTRY_ID ? CHATGPT_API_COUNTRY_LABEL : `Country #${countryId}`;
   }
   return normalizeHeroSmsCountryLabel(
     getHeroSmsCountryLabelById(normalized.countryId || '')

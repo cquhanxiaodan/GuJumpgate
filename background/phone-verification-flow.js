@@ -107,6 +107,8 @@
     const PHONE_SMS_PROVIDER_GRIZZLYSMS = 'grizzlysms';
     const PHONE_SMS_PROVIDER_SMSPOOL = 'smspool';
     const PHONE_SMS_PROVIDER_CHATGPT_API = 'chatgpt-api';
+    const CHATGPT_API_COUNTRY_ID = 187;
+    const CHATGPT_API_COUNTRY_LABEL = 'Canada';
     const DEFAULT_PHONE_SMS_PROVIDER = PHONE_SMS_PROVIDER_HERO;
     const DEFAULT_PHONE_SMS_PROVIDER_ORDER = Object.freeze([
       PHONE_SMS_PROVIDER_HERO,
@@ -1998,7 +2000,9 @@
       const rawProvider = String(record.provider || '').trim();
       const provider = normalizePhoneSmsProvider(rawProvider);
       const rawCountryId = record.countryId ?? record.country;
-      const fallbackCountryId = provider === PHONE_SMS_PROVIDER_FIVE_SIM ? 'england' : HERO_SMS_COUNTRY_ID;
+      const fallbackCountryId = provider === PHONE_SMS_PROVIDER_FIVE_SIM
+        ? 'england'
+        : (provider === PHONE_SMS_PROVIDER_CHATGPT_API ? CHATGPT_API_COUNTRY_ID : HERO_SMS_COUNTRY_ID);
       const expiresAt = normalizeTimestampMs(record.expiresAt);
       const serviceCode = String(
         record.serviceCode
@@ -2034,7 +2038,11 @@
         serviceCode,
         countryId,
         ...(provider === PHONE_SMS_PROVIDER_FIVE_SIM ? { countryCode: countryId } : {}),
-        ...(countryLabel ? { countryLabel } : {}),
+        ...(countryLabel ? { countryLabel } : (
+          provider === PHONE_SMS_PROVIDER_CHATGPT_API && countryId === CHATGPT_API_COUNTRY_ID
+            ? { countryLabel: CHATGPT_API_COUNTRY_LABEL }
+            : {}
+        )),
         successfulUses: normalizeUseCount(record.successfulUses),
         maxUses: Math.max(1, Math.floor(Number(record.maxUses) || DEFAULT_PHONE_NUMBER_MAX_USES)),
         ...(expiresAt > 0 ? { expiresAt } : {}),
@@ -2072,9 +2080,11 @@
         record.activationId ?? record.id ?? record.activation ?? ''
       ).trim();
       const provider = normalizePhoneSmsProvider(record.provider || PHONE_SMS_PROVIDER_HERO);
-      const inferredCountry = provider === PHONE_SMS_PROVIDER_5SIM
-        ? inferFiveSimCountryFromPhoneNumber(phoneNumber)
-        : inferHeroSmsCountryFromPhoneNumber(phoneNumber);
+      const inferredCountry = provider === PHONE_SMS_PROVIDER_CHATGPT_API
+        ? { id: CHATGPT_API_COUNTRY_ID, label: CHATGPT_API_COUNTRY_LABEL }
+        : (provider === PHONE_SMS_PROVIDER_5SIM
+          ? inferFiveSimCountryFromPhoneNumber(phoneNumber)
+          : inferHeroSmsCountryFromPhoneNumber(phoneNumber));
       const countryId = provider === PHONE_SMS_PROVIDER_5SIM
         ? normalizeFiveSimCountryId(
           record.countryCode ?? record.countryId ?? record.country,
