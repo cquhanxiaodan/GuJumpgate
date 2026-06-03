@@ -3462,11 +3462,7 @@ function FindProxyForURL(url, host) {
     async function runHostedCheckoutPayPalStep(tabId, payload = {}) {
       await waitForTabCompleteUntilStopped(tabId);
       await sleepWithStop(1000);
-      await ensureContentScriptReadyOnTabUntilStopped(PAYPAL_SOURCE, tabId, {
-        inject: PAYPAL_INJECT_FILES,
-        injectSource: PAYPAL_SOURCE,
-        logMessage: '步骤 6：PayPal hosted checkout 页面仍在加载，等待脚本就绪...',
-      });
+      await injectPayPalHostedScriptsInAllFrames(tabId);
       const result = await sendPayPalHostedFrameMessage(tabId, {
         type: 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP',
         source: 'background',
@@ -3480,11 +3476,7 @@ function FindProxyForURL(url, host) {
     }
 
     async function getHostedCheckoutPayPalState(tabId) {
-      await ensureContentScriptReadyOnTabUntilStopped(PAYPAL_SOURCE, tabId, {
-        inject: PAYPAL_INJECT_FILES,
-        injectSource: PAYPAL_SOURCE,
-        logMessage: '步骤 6：正在等待 PayPal hosted checkout 页面脚本就绪...',
-      });
+      await injectPayPalHostedScriptsInAllFrames(tabId);
       const result = await sendPayPalHostedFrameMessage(tabId, {
         type: 'PAYPAL_HOSTED_GET_STATE',
         source: 'background',
@@ -3494,6 +3486,36 @@ function FindProxyForURL(url, host) {
         throw new Error(result.error);
       }
       return result || {};
+    }
+
+    async function injectPayPalHostedScriptsInAllFrames(tabId) {
+      if (!chrome?.scripting?.executeScript) {
+        await ensureContentScriptReadyOnTabUntilStopped(PAYPAL_SOURCE, tabId, {
+          inject: PAYPAL_INJECT_FILES,
+          injectSource: PAYPAL_SOURCE,
+          logMessage: '步骤 6：正在等待 PayPal hosted checkout 页面脚本就绪...',
+        });
+        return;
+      }
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId, allFrames: true },
+          func: (injectedSource) => {
+            window.__MULTIPAGE_SOURCE = injectedSource;
+          },
+          args: [PAYPAL_SOURCE],
+        });
+      } catch (error) {
+        // 部分跨域或特殊 frame 可能拒绝注入，后续 PING 会筛掉无响应 frame。
+      }
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId, allFrames: true },
+          files: PAYPAL_INJECT_FILES,
+        });
+      } catch (error) {
+        // 已注入过的 frame 会因为顶层 const 重复声明而报错；随后用 PING 判断实际可用 frame。
+      }
     }
 
     function isActionableHostedPayPalState(result = {}) {
@@ -3513,6 +3535,16 @@ function FindProxyForURL(url, host) {
         || Boolean(result?.hasHostedGuestCheckout)
         || Boolean(result?.verificationInputsVisible)
         || Boolean(result?.reviewConsentReady);
+    }
+
+    function isValidHostedPayPalState(result = {}) {
+      return Boolean(result && typeof result === 'object' && (
+        String(result.url || '').trim()
+        || String(result.hostedStage || result.stage || '').trim()
+        || 'hasEmailInput' in result
+        || 'hasPasswordInput' in result
+        || 'inputCount' in result
+      ));
     }
 
     async function getPayPalFrameIds(tabId) {
@@ -3562,6 +3594,10 @@ function FindProxyForURL(url, host) {
             continue;
           }
           const normalized = { ...(result || {}), frameId };
+          if (message.type === 'PAYPAL_HOSTED_GET_STATE' && !isValidHostedPayPalState(normalized)) {
+            results.push({ frameId, error: 'empty hosted paypal state response' });
+            continue;
+          }
           results.push(normalized);
           if (message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP' && normalized.submitted !== false) {
             return normalized;
