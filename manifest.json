@@ -133,6 +133,7 @@
     },
     {
       "matches": [
+        "https://*.paypal.com/*",
         "https://www.paypal.com/*",
         "https://paypal.com/*"
       ],

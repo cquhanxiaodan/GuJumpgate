@@ -3762,6 +3762,7 @@ function FindProxyForURL(url, host) {
         const pageState = await getHostedCheckoutPayPalState(tabId);
         const stageSignature = JSON.stringify({
           frameId: pageState.frameId,
+          frameUrl: String(pageState.url || '').slice(0, 180),
           stage: pageState.hostedStage || '',
           hasEmailInput: Boolean(pageState.hasEmailInput),
           hasPasswordInput: Boolean(pageState.hasPasswordInput),
@@ -3769,6 +3770,8 @@ function FindProxyForURL(url, host) {
           verificationInputsVisible: Boolean(pageState.verificationInputsVisible),
           reviewConsentReady: Boolean(pageState.reviewConsentReady),
           approveReady: Boolean(pageState.approveReady),
+          inputCount: Number(pageState.inputCount) || 0,
+          visibleInputCount: Number(pageState.visibleInputCount) || 0,
         });
         if (stageSignature !== lastLoggedHostedStageSignature) {
           lastLoggedHostedStageSignature = stageSignature;

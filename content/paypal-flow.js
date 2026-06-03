@@ -140,7 +140,22 @@ function getActionText(el) {
 }
 
 function getVisibleControls(selector) {
-  return Array.from(document.querySelectorAll(selector)).filter(isVisibleElement);
+  return getControls(selector).filter(isVisibleElement);
+}
+
+function getControls(selector) {
+  const controls = [];
+  const collect = (root) => {
+    if (!root?.querySelectorAll) return;
+    controls.push(...Array.from(root.querySelectorAll(selector)));
+    Array.from(root.querySelectorAll('*')).forEach((node) => {
+      if (node?.shadowRoot) {
+        collect(node.shadowRoot);
+      }
+    });
+  };
+  collect(document);
+  return controls;
 }
 
 function isEnabledControl(el) {
@@ -353,7 +368,7 @@ function hasPayPalHostedGuestPhoneError() {
 function getPayPalHostedBlockedMessage() {
   const bodyText = normalizeText(document.body?.innerText || '');
   const match = bodyText.match(
-    /You\s+have\s+been\s+blocked\.?|We\s+couldn[’']?t\s+load\s+the\s+security\s+challenge\.?/i
+    /You\s+have\s+been\s+blocked\.?|Confirm\s+you[’']?re\s+human|Move\s+the\s+slider\s+all\s+the\s+way\s+to\s+the\s+right|We\s+couldn[’']?t\s+load\s+the\s+security\s+challenge\.?/i
   );
   return match ? match[0] : '';
 }
@@ -364,6 +379,10 @@ function isPayPalHostedBlockedPage() {
     || (
       /you\s+have\s+been\s+blocked/i.test(bodyText)
       && /security\s+challenge/i.test(bodyText)
+    )
+    || (
+      /confirm\s+you[’']?re\s+human/i.test(bodyText)
+      && /move\s+the\s+slider|visual\s+verification|audio\s+verification/i.test(bodyText)
     );
 }
 
@@ -1486,6 +1505,8 @@ function inspectPayPalState() {
   const approveButton = findApproveButton();
   const loginPhase = getPayPalLoginPhase(emailInput, passwordInput);
   const hostedStage = detectPayPalHostedCheckoutStage();
+  const inputs = getControls('input, textarea, [contenteditable="true"], [role="textbox"]');
+  const visibleInputs = inputs.filter(isVisibleElement);
   return {
     url: location.href,
     readyState: document.readyState,
@@ -1494,6 +1515,8 @@ function inspectPayPalState() {
     loginPhase,
     hasEmailInput: Boolean(emailInput),
     hasPasswordInput: Boolean(passwordInput),
+    inputCount: inputs.length,
+    visibleInputCount: visibleInputs.length,
     hostedAccountCreateEmail: hostedStage === PAYPAL_HOSTED_STAGE_ACCOUNT_CREATE_EMAIL,
     hostedAccountCreateEmailContinueReady: Boolean(findHostedAccountCreateEmailContinueButton()),
     hasHostedGuestCheckout: hostedStage === PAYPAL_HOSTED_STAGE_GUEST_CHECKOUT,
