@@ -143,6 +143,7 @@
         "content/operation-delay.js",
         "content/paypal-flow.js"
       ],
+      "all_frames": true,
       "run_at": "document_idle"
     }
   ],

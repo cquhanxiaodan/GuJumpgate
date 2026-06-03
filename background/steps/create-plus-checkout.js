@@ -3467,7 +3467,7 @@ function FindProxyForURL(url, host) {
         injectSource: PAYPAL_SOURCE,
         logMessage: '步骤 6：PayPal hosted checkout 页面仍在加载，等待脚本就绪...',
       });
-      const result = await sendTabMessageUntilStopped(tabId, PAYPAL_SOURCE, {
+      const result = await sendPayPalHostedFrameMessage(tabId, {
         type: 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP',
         source: 'background',
         payload,
@@ -3485,7 +3485,7 @@ function FindProxyForURL(url, host) {
         injectSource: PAYPAL_SOURCE,
         logMessage: '步骤 6：正在等待 PayPal hosted checkout 页面脚本就绪...',
       });
-      const result = await sendTabMessageUntilStopped(tabId, PAYPAL_SOURCE, {
+      const result = await sendPayPalHostedFrameMessage(tabId, {
         type: 'PAYPAL_HOSTED_GET_STATE',
         source: 'background',
         payload: {},
@@ -3494,6 +3494,63 @@ function FindProxyForURL(url, host) {
         throw new Error(result.error);
       }
       return result || {};
+    }
+
+    function isActionableHostedPayPalState(result = {}) {
+      const stage = String(result?.hostedStage || result?.stage || '').trim();
+      return [
+        'pay_login',
+        'account_create_email',
+        'guest_checkout',
+        'verification',
+        'review_consent',
+        'redirecting',
+        'blocked',
+        'generic_error',
+      ].includes(stage)
+        || Boolean(result?.hasEmailInput)
+        || Boolean(result?.hasPasswordInput)
+        || Boolean(result?.hasHostedGuestCheckout)
+        || Boolean(result?.verificationInputsVisible)
+        || Boolean(result?.reviewConsentReady);
+    }
+
+    async function getPayPalFrameIds(tabId) {
+      const frames = await chrome?.webNavigation?.getAllFrames?.({ tabId }).catch(() => []);
+      const frameIds = (Array.isArray(frames) ? frames : [])
+        .map((frame) => Number(frame?.frameId))
+        .filter((frameId) => Number.isInteger(frameId) && frameId >= 0);
+      return Array.from(new Set([0, ...frameIds]));
+    }
+
+    async function sendPayPalHostedFrameMessage(tabId, message = {}) {
+      const frameIds = await getPayPalFrameIds(tabId);
+      const results = [];
+      for (const frameId of frameIds) {
+        throwIfStopped();
+        try {
+          const result = await chrome.tabs.sendMessage(tabId, message, { frameId });
+          if (result?.error) {
+            results.push({ frameId, ...result });
+            continue;
+          }
+          const normalized = { ...(result || {}), frameId };
+          results.push(normalized);
+          if (message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP' && normalized.submitted !== false) {
+            return normalized;
+          }
+          if (message.type === 'PAYPAL_HOSTED_GET_STATE' && isActionableHostedPayPalState(normalized)) {
+            return normalized;
+          }
+        } catch (error) {
+          results.push({ frameId, error: error?.message || String(error || 'unknown error') });
+        }
+      }
+      const fallback = results.find((result) => !result?.error) || results[0] || {};
+      if (fallback?.error && !results.some((result) => !result?.error)) {
+        throw new Error(fallback.error);
+      }
+      return fallback;
     }
 
     function buildHostedCheckoutCompletionPayloadFromState(state = {}) {
@@ -3651,6 +3708,7 @@ function FindProxyForURL(url, host) {
       let hostedGuestCardErrorRetrySettlingUntil = 0;
       let hostedHermesStalledObservationCount = 0;
       let hostedHermesStalledSignature = '';
+      let lastLoggedHostedStageSignature = '';
       let loggedHostedHermesRedirecting = false;
       const hostedVerificationAttemptedCodes = new Set();
       while (Date.now() - startedAt < HOSTED_CHECKOUT_PAYPAL_LOOP_TIMEOUT_MS) {
@@ -3675,6 +3733,20 @@ function FindProxyForURL(url, host) {
         }
 
         const pageState = await getHostedCheckoutPayPalState(tabId);
+        const stageSignature = JSON.stringify({
+          frameId: pageState.frameId,
+          stage: pageState.hostedStage || '',
+          hasEmailInput: Boolean(pageState.hasEmailInput),
+          hasPasswordInput: Boolean(pageState.hasPasswordInput),
+          hasHostedGuestCheckout: Boolean(pageState.hasHostedGuestCheckout),
+          verificationInputsVisible: Boolean(pageState.verificationInputsVisible),
+          reviewConsentReady: Boolean(pageState.reviewConsentReady),
+          approveReady: Boolean(pageState.approveReady),
+        });
+        if (stageSignature !== lastLoggedHostedStageSignature) {
+          lastLoggedHostedStageSignature = stageSignature;
+          await addLog(`步骤 6：PayPal hosted checkout 当前识别状态：${stageSignature}`, 'info');
+        }
         if (pageState.hostedStage === 'blocked' || pageState.hostedBlocked) {
           const blockedMessage = String(
             pageState.hostedBlockedMessage
