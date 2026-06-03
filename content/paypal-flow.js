@@ -1209,6 +1209,9 @@ async function clickHostedReviewConsent() {
 
 async function runHostedCheckoutStep(payload = {}) {
   const stage = detectPayPalHostedCheckoutStage();
+  if (stage === PAYPAL_HOSTED_STAGE_UNKNOWN && (findEmailInput() || findPasswordInput())) {
+    return submitHostedPayLogin(payload);
+  }
   if (payload.resendVerificationCode && stage !== PAYPAL_HOSTED_STAGE_VERIFICATION) {
     return {
       stage,

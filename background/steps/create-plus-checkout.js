@@ -3970,7 +3970,7 @@ function FindProxyForURL(url, host) {
           continue;
         }
 
-        if (pageState.hostedStage === 'pay_login') {
+        if (pageState.hostedStage === 'pay_login' || pageState.needsLogin || pageState.hasEmailInput || pageState.hasPasswordInput) {
           hostedVerificationSubmitted = false;
           loggedWaitingForHostedVerificationResult = false;
           await addLog('步骤 6：检测到 PayPal hosted checkout 登录页，正在填写邮箱并继续...', 'info');
