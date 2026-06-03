@@ -3538,9 +3538,14 @@ function FindProxyForURL(url, host) {
     }
 
     function isValidHostedPayPalState(result = {}) {
+      const stage = String(result?.hostedStage || result?.stage || '').trim();
+      const url = String(result?.url || '').trim();
+      if (stage === 'outside_paypal' || /^about:(?:blank|srcdoc)$/i.test(url)) {
+        return false;
+      }
       return Boolean(result && typeof result === 'object' && (
-        String(result.url || '').trim()
-        || String(result.hostedStage || result.stage || '').trim()
+        url
+        || stage
         || 'hasEmailInput' in result
         || 'hasPasswordInput' in result
         || 'inputCount' in result

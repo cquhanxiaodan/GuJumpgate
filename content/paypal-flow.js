@@ -186,15 +186,21 @@ function findEnabledClickableByText(patterns) {
 }
 
 function findInputByPatterns(patterns) {
-  const inputs = getVisibleControls('input')
-    .filter((input) => {
-      const type = String(input.getAttribute('type') || input.type || '').trim().toLowerCase();
-      return isEnabledControl(input) && !['hidden', 'checkbox', 'radio', 'submit', 'button', 'file'].includes(type);
-    });
+  const inputs = getVisibleEditableInputs();
   return inputs.find((input) => {
     const text = getActionText(input);
     return patterns.some((pattern) => pattern.test(text));
   }) || null;
+}
+
+function getVisibleEditableInputs() {
+  return getVisibleControls('input, textarea, [contenteditable="true"], [role="textbox"]')
+    .filter((input) => {
+      const tagName = String(input?.tagName || '').trim().toLowerCase();
+      const type = String(input.getAttribute?.('type') || input.type || '').trim().toLowerCase();
+      return isEnabledControl(input)
+        && (tagName !== 'input' || !['hidden', 'checkbox', 'radio', 'submit', 'button', 'file'].includes(type));
+    });
 }
 
 function findEmailInput() {
@@ -210,17 +216,16 @@ function findEmailInput() {
     ].filter(Boolean).join(' '));
     return type === 'password' || /password|pass|密码/i.test(metadataText);
   };
-  const inputs = getVisibleControls('input')
+  const inputs = getVisibleEditableInputs()
     .filter((input) => {
       const type = String(input.getAttribute('type') || input.type || '').trim().toLowerCase();
-      return isEnabledControl(input)
-        && !['hidden', 'checkbox', 'radio', 'submit', 'button', 'file'].includes(type)
-        && !isPasswordCandidate(input);
+      return type !== 'password' && !isPasswordCandidate(input);
     });
   return inputs.find((input) => [
     /email|login|user|账号|邮箱/i,
   ].some((pattern) => pattern.test(getActionText(input))))
     || getVisibleControls('input[type="email"]').find((input) => isVisibleElement(input) && !isPasswordCandidate(input))
+    || (inputs.length === 1 && isSimplePayPalApprovePage() ? inputs[0] : null)
     || null;
 }
 
@@ -249,6 +254,24 @@ function findLoginNextButton() {
     /next|continue|login|log\s*in|sign\s*in/i,
     /下一步|继续|登录|登入/i,
   ]);
+}
+
+function isSimplePayPalApprovePage() {
+  const pathname = getPayPalHostedPathname();
+  return /\/agreements\/approve/i.test(pathname)
+    || pathname === '/pay'
+    || /paypal\./i.test(String(location?.host || ''));
+}
+
+function findButtonBelowInput(input) {
+  if (!input) return null;
+  const inputRect = input.getBoundingClientRect();
+  const candidates = getVisibleControls('button, a, [role="button"], input[type="button"], input[type="submit"]')
+    .filter(isEnabledControl)
+    .map((button) => ({ button, rect: button.getBoundingClientRect() }))
+    .filter(({ rect }) => rect.width > 0 && rect.height > 0 && rect.top >= inputRect.bottom - 8)
+    .sort((a, b) => Math.abs(a.rect.top - inputRect.bottom) - Math.abs(b.rect.top - inputRect.bottom));
+  return candidates[0]?.button || null;
 }
 
 function findEmailNextButton() {
@@ -965,7 +988,11 @@ function dispatchHostedGenericClick(button) {
 
 async function clickHostedGenericSubmitButton(retries = 0) {
   removeHostedCaptchaArtifacts();
-  const button = findHostedGuestSubmitButton() || findEmailNextButton() || findLoginNextButton();
+  const emailInput = findEmailInput();
+  const button = (isSimplePayPalApprovePage() ? findButtonBelowInput(emailInput) : null)
+    || findHostedGuestSubmitButton()
+    || findEmailNextButton()
+    || findLoginNextButton();
   if (!button) {
     if (retries >= 10) {
       throw new Error('PayPal hosted checkout 未找到可点击的继续/提交按钮。');
