@@ -3516,8 +3516,28 @@ function FindProxyForURL(url, host) {
     }
 
     async function getPayPalFrameIds(tabId) {
+      const webNavigationFrameIds = await new Promise((resolve) => {
+        if (!chrome?.webNavigation?.getAllFrames) {
+          resolve([]);
+          return;
+        }
+        try {
+          chrome.webNavigation.getAllFrames({ tabId }, (frames = []) => {
+            if (chrome?.runtime?.lastError) {
+              resolve([]);
+              return;
+            }
+            resolve((Array.isArray(frames) ? frames : [])
+              .map((frame) => Number(frame?.frameId))
+              .filter((frameId) => Number.isInteger(frameId) && frameId >= 0));
+          });
+        } catch (error) {
+          resolve([]);
+        }
+      });
+      const candidateFrameIds = Array.from(new Set([0, ...webNavigationFrameIds]));
       const frameIds = [];
-      for (let frameId = 0; frameId <= 10; frameId += 1) {
+      for (const frameId of candidateFrameIds) {
         try {
           const result = await chrome.tabs.sendMessage(tabId, { type: 'PAYPAL_PING' }, { frameId });
           if (result === 'pong') {
