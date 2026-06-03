@@ -3550,6 +3550,18 @@ function FindProxyForURL(url, host) {
       return guestProfile;
     }
 
+    function resolvePayPalCredentialsForHostedCheckout(state = {}) {
+      const currentId = String(state?.currentPayPalAccountId || '').trim();
+      const accounts = Array.isArray(state?.paypalAccounts) ? state.paypalAccounts : [];
+      const selectedAccount = currentId
+        ? accounts.find((account) => String(account?.id || '').trim() === currentId) || null
+        : null;
+      return {
+        email: String(selectedAccount?.email || state?.paypalEmail || '').trim(),
+        password: String(selectedAccount?.password || state?.paypalPassword || ''),
+      };
+    }
+
     async function waitForHostedCheckoutPendingReturnResolution(tabId) {
       await addLog('步骤 6：hosted checkout 已回流到 pending 页面，先等待状态落稳并检查 PLUS 是否已生效...', 'warn');
       await sleepWithStop(HOSTED_CHECKOUT_PENDING_RETURN_SESSION_SETTLE_MS);
@@ -3642,6 +3654,9 @@ function FindProxyForURL(url, host) {
     async function runHostedCheckoutPayPalFlow(tabId, guestProfile, completionPayload = {}, options = {}) {
       const stopBeforeVerification = Boolean(options?.stopBeforeVerification);
       const stopBeforeReview = Boolean(options?.stopBeforeReview);
+      const paypalCredentials = options?.paypalCredentials && typeof options.paypalCredentials === 'object'
+        ? options.paypalCredentials
+        : {};
       const startedAt = Date.now();
       let hostedVerificationResendAttempts = 0;
       let hostedVerificationSubmitted = false;
@@ -3904,7 +3919,8 @@ function FindProxyForURL(url, host) {
           await addLog('步骤 6：检测到 PayPal hosted checkout 登录页，正在填写邮箱并继续...', 'info');
           await runHostedCheckoutPayPalStep(tabId, {
             ...guestProfile,
-            email: guestProfile.email,
+            email: String(paypalCredentials.email || guestProfile.email || '').trim(),
+            password: String(paypalCredentials.password || ''),
           });
           await sleepWithStop(1000);
           continue;
@@ -4022,7 +4038,9 @@ function FindProxyForURL(url, host) {
       }
 
       await addLog('步骤 6：hosted checkout 已跳转到 PayPal，准备继续 guest/card 流自动化。', 'info');
-      const payPalFlowResult = await runHostedCheckoutPayPalFlow(tabId, guestProfile, completionPayload);
+      const payPalFlowResult = await runHostedCheckoutPayPalFlow(tabId, guestProfile, completionPayload, {
+        paypalCredentials: resolvePayPalCredentialsForHostedCheckout(state),
+      });
       if (payPalFlowResult?.restarted || payPalFlowResult?.resolvedByPlusActivation || payPalFlowResult?.resolvedByAlreadyPaid) {
         return;
       }
@@ -4140,7 +4158,11 @@ function FindProxyForURL(url, host) {
         tabId,
         guestProfile,
         buildHostedCheckoutCompletionPayloadFromState(state),
-        { stopBeforeVerification: true, stopBeforeReview: true }
+        {
+          stopBeforeVerification: true,
+          stopBeforeReview: true,
+          paypalCredentials: resolvePayPalCredentialsForHostedCheckout(state),
+        }
       );
       if (result?.restarted || result?.resolvedByPlusActivation || result?.resolvedByAlreadyPaid) {
         await setState({ paypalHostedCheckoutCompleted: true });
@@ -4179,7 +4201,10 @@ function FindProxyForURL(url, host) {
         tabId,
         guestProfile,
         buildHostedCheckoutCompletionPayloadFromState(state),
-        { stopBeforeReview: true }
+        {
+          stopBeforeReview: true,
+          paypalCredentials: resolvePayPalCredentialsForHostedCheckout(state),
+        }
       );
       if (result?.restarted || result?.resolvedByPlusActivation || result?.resolvedByAlreadyPaid) {
         await setState({ paypalHostedCheckoutCompleted: true });
@@ -4201,7 +4226,9 @@ function FindProxyForURL(url, host) {
       if (!state?.paypalHostedCheckoutCompleted) {
         const tabId = await resolveHostedCheckoutTabId(state);
         const guestProfile = await resolveHostedCheckoutGuestProfile(state);
-        const result = await runHostedCheckoutPayPalFlow(tabId, guestProfile, completionPayload);
+        const result = await runHostedCheckoutPayPalFlow(tabId, guestProfile, completionPayload, {
+          paypalCredentials: resolvePayPalCredentialsForHostedCheckout(state),
+        });
         if (result?.restarted || result?.resolvedByPlusActivation || result?.resolvedByAlreadyPaid) {
           await completeNodeFromBackground('paypal-hosted-review', completionPayload);
           return;

@@ -261,7 +261,9 @@ function getPayPalHostedPathname() {
 function isPayPalHostedLoginPage() {
   const pathname = getPayPalHostedPathname();
   return pathname === '/pay'
-    || Boolean(document.getElementById('email'));
+    || Boolean(document.getElementById('email'))
+    || Boolean(findEmailInput())
+    || Boolean(findPasswordInput());
 }
 
 function findHostedAccountCreateEmailContinueButton() {
@@ -1008,6 +1010,15 @@ function normalizeHostedVerificationCode(value = '') {
 async function submitHostedPayLogin(payload = {}) {
   await waitForDocumentComplete();
   removeHostedCaptchaArtifacts();
+  if (payload.password || findPasswordInput()) {
+    const result = await submitPayPalLogin(payload);
+    return {
+      stage: PAYPAL_HOSTED_STAGE_LOGIN,
+      submitted: Boolean(result?.submitted),
+      phase: result?.phase || '',
+      awaiting: result?.awaiting || 'guest_checkout_or_review',
+    };
+  }
   const email = normalizeText(payload.email || buildHostedRandomEmail());
   if (!email) {
     throw new Error('PayPal hosted checkout 缺少邮箱。');
