@@ -3516,11 +3516,18 @@ function FindProxyForURL(url, host) {
     }
 
     async function getPayPalFrameIds(tabId) {
-      const frames = await chrome?.webNavigation?.getAllFrames?.({ tabId }).catch(() => []);
-      const frameIds = (Array.isArray(frames) ? frames : [])
-        .map((frame) => Number(frame?.frameId))
-        .filter((frameId) => Number.isInteger(frameId) && frameId >= 0);
-      return Array.from(new Set([0, ...frameIds]));
+      const frameIds = [];
+      for (let frameId = 0; frameId <= 10; frameId += 1) {
+        try {
+          const result = await chrome.tabs.sendMessage(tabId, { type: 'PAYPAL_PING' }, { frameId });
+          if (result === 'pong') {
+            frameIds.push(frameId);
+          }
+        } catch (error) {
+          // frame 不存在或无响应，跳过
+        }
+      }
+      return frameIds.length > 0 ? frameIds : [0];
     }
 
     async function sendPayPalHostedFrameMessage(tabId, message = {}) {

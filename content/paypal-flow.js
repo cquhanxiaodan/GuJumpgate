@@ -21,6 +21,10 @@ if (document.documentElement.getAttribute(PAYPAL_FLOW_LISTENER_SENTINEL) !== '1'
   document.documentElement.setAttribute(PAYPAL_FLOW_LISTENER_SENTINEL, '1');
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'PAYPAL_PING') {
+      sendResponse('pong');
+      return true;
+    }
     if (
       message.type === 'PAYPAL_GET_STATE'
       || message.type === 'PAYPAL_SUBMIT_LOGIN'
