@@ -3467,6 +3467,11 @@ function FindProxyForURL(url, host) {
         type: 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP',
         source: 'background',
         payload,
+      }).catch((error) => {
+        if (/empty hosted paypal state response/i.test(error?.message || '')) {
+          return directRunHostedPayPalEmailStep(tabId, payload);
+        }
+        throw error;
       });
       throwIfStopped();
       if (result?.error) {
@@ -3481,11 +3486,134 @@ function FindProxyForURL(url, host) {
         type: 'PAYPAL_HOSTED_GET_STATE',
         source: 'background',
         payload: {},
+      }).catch((error) => {
+        if (/empty hosted paypal state response/i.test(error?.message || '')) {
+          return directInspectHostedPayPalFrames(tabId);
+        }
+        throw error;
       });
       if (result?.error) {
         throw new Error(result.error);
       }
       return result || {};
+    }
+
+    async function directInspectHostedPayPalFrames(tabId) {
+      if (!chrome?.scripting?.executeScript) {
+        throw new Error('empty hosted paypal state response');
+      }
+      const executions = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        func: () => {
+          const normalize = (value = '') => String(value || '').replace(/\s+/g, ' ').trim();
+          const isVisible = (el) => {
+            if (!el) return false;
+            let node = el;
+            while (node && node.nodeType === 1) {
+              if (node.hidden || node.getAttribute?.('aria-hidden') === 'true' || node.getAttribute?.('inert') !== null) return false;
+              const style = getComputedStyle(node);
+              if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' || Number(style.opacity) === 0) return false;
+              node = node.parentElement;
+            }
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          };
+          const editableInputs = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"]'))
+            .filter((input) => {
+              const type = String(input.getAttribute?.('type') || input.type || '').trim().toLowerCase();
+              return isVisible(input)
+                && !input.disabled
+                && input.getAttribute?.('aria-disabled') !== 'true'
+                && !['hidden', 'checkbox', 'radio', 'submit', 'button', 'file', 'password'].includes(type);
+            });
+          const bodyText = normalize(document.body?.innerText || '');
+          const url = String(location.href || '');
+          const isPayPal = /paypal\./i.test(String(location.host || '')) || /paypal\./i.test(url);
+          const isBlank = /^about:(?:blank|srcdoc)$/i.test(url);
+          const hasEmailInput = isPayPal && editableInputs.length === 1;
+          const blocked = /confirm\s+you[’']?re\s+human|move\s+the\s+slider|you\s+have\s+been\s+blocked/i.test(bodyText);
+          return {
+            url,
+            hostedStage: blocked ? 'blocked' : (hasEmailInput ? 'pay_login' : (isBlank ? 'outside_paypal' : 'unknown')),
+            hasEmailInput,
+            hasPasswordInput: false,
+            hasHostedGuestCheckout: false,
+            verificationInputsVisible: false,
+            reviewConsentReady: false,
+            approveReady: false,
+            inputCount: editableInputs.length,
+            visibleInputCount: editableInputs.length,
+            directInspect: true,
+          };
+        },
+      });
+      const states = (Array.isArray(executions) ? executions : [])
+        .map((entry) => ({ ...(entry?.result || {}), frameId: entry?.frameId }))
+        .filter((state) => isValidHostedPayPalState(state));
+      return states.find(isActionableHostedPayPalState)
+        || states.find((state) => !/^about:(?:blank|srcdoc)$/i.test(String(state.url || '')))
+        || states[0]
+        || {};
+    }
+
+    async function directRunHostedPayPalEmailStep(tabId, payload = {}) {
+      if (!chrome?.scripting?.executeScript) {
+        throw new Error('empty hosted paypal state response');
+      }
+      const email = String(payload?.email || '').trim();
+      const executions = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        args: [email],
+        func: (emailValue) => {
+          const isVisible = (el) => {
+            if (!el) return false;
+            let node = el;
+            while (node && node.nodeType === 1) {
+              if (node.hidden || node.getAttribute?.('aria-hidden') === 'true' || node.getAttribute?.('inert') !== null) return false;
+              const style = getComputedStyle(node);
+              if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' || Number(style.opacity) === 0) return false;
+              node = node.parentElement;
+            }
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          };
+          const inputs = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"]'))
+            .filter((input) => {
+              const type = String(input.getAttribute?.('type') || input.type || '').trim().toLowerCase();
+              return isVisible(input)
+                && !input.disabled
+                && input.getAttribute?.('aria-disabled') !== 'true'
+                && !['hidden', 'checkbox', 'radio', 'submit', 'button', 'file', 'password'].includes(type);
+            });
+          if (!/paypal\./i.test(String(location.host || '')) || inputs.length !== 1 || !emailValue) {
+            return { submitted: false, url: location.href, inputCount: inputs.length };
+          }
+          const input = inputs[0];
+          input.focus?.();
+          input.value = '';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.value = emailValue;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          const inputRect = input.getBoundingClientRect();
+          const buttons = Array.from(document.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"]'))
+            .filter((button) => isVisible(button) && !button.disabled && button.getAttribute?.('aria-disabled') !== 'true')
+            .map((button) => ({ button, rect: button.getBoundingClientRect() }))
+            .filter(({ rect }) => rect.top >= inputRect.bottom - 8)
+            .sort((a, b) => Math.abs(a.rect.top - inputRect.bottom) - Math.abs(b.rect.top - inputRect.bottom));
+          const button = buttons[0]?.button || null;
+          if (!button) {
+            return { submitted: false, url: location.href, inputCount: inputs.length, filled: true, reason: 'button_not_found' };
+          }
+          button.click();
+          return { submitted: true, stage: 'pay_login', url: location.href, inputCount: inputs.length, clickedText: String(button.textContent || button.value || '').trim() };
+        },
+      });
+      const results = (Array.isArray(executions) ? executions : [])
+        .map((entry) => ({ ...(entry?.result || {}), frameId: entry?.frameId }));
+      return results.find((result) => result?.submitted)
+        || results.find((result) => result?.filled)
+        || { submitted: false, directRunResults: results };
     }
 
     async function injectPayPalHostedScriptsInAllFrames(tabId) {
